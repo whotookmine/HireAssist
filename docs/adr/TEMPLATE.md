@@ -150,9 +150,65 @@ decision about *architecture*, and states honest negative consequences alongside
 - The **Issue states a product question** ("can we build a reviews hub?"), which is scoping,
   not an architectural force.
 
+## An ADR is a record made at a point in time
+
+**An ADR may only cite an ADR that already existed when it was written.** A record dated March
+cannot reference a decision taken in September — the author did not know it, and pretending
+otherwise turns a historical record into a rolling summary that nobody can trust as evidence of
+what was known and when.
+
+This has three consequences:
+
+1. **Reference backwards only.** ADR-004 may cite ADR-002. ADR-002 may not cite ADR-004. If an
+   earlier record needs to mention a question it leaves open, name the *subject* — "how candidate
+   data is erased across services" — never a number that does not exist yet.
+2. **Never edit an earlier ADR's body to reflect a later decision.** The argument, the positions
+   and the implications are what was believed then, and they stay that way even when they turn out
+   to be wrong. A later reader needs to see the reasoning that was actually used.
+3. **Status is the exception**, because status is maintained over the life of a record. When a
+   later ADR overturns or narrows an earlier one, update the earlier one's Status — and only its
+   Status — with a dated line:
+
+   ```
+   ### Status
+
+   **Accepted.**
+
+   - *Amended 2026-09-11 by ADR-006: the workspace concept this record assumed is withdrawn;
+     the tenant-isolation force and the internal-call cost no longer apply.*
+   ```
+
+   Use **Superseded by ADR-NNN** when the whole decision is replaced, and a dated *Amended by*
+   line when only part of it is. Either way the reader is sent forward; the body stays as written.
+
+The later ADR carries the explanation. It is the record that knew.
+
+## Write it to stand alone
+
+**An ADR must make sense to someone who has only this file.** It will be read on its own — in a
+review, by a new team member, pulled out of the repository entirely — so it may not depend on
+another document to be understood.
+
+- **Do not reference project documents.** No "see the proposal", no file paths, no links to the
+  requirements or the changelog. If a fact from one of them matters, state the fact.
+- **Requirement and use case identifiers are allowed**, because traceability is the point of
+  *Related requirements* — but say what each one means the first time it appears. `FR-2.7` tells a
+  stranger nothing; "retry, then manual review (FR-2.7)" tells them everything they need.
+- **Other ADRs may be linked**, because they are part of the same record set and a reader who has
+  one can find the rest.
+
+## Keep it short
+
+Aim for one to two pages. Every sentence should carry a fact, a reason or a consequence. Cut
+throat-clearing, cut restatement, and cut any sentence that explains what you are about to say
+next. A long ADR is not more rigorous — it is less likely to be read, and an unread record is the
+same as no record.
+
 ## Rules of thumb
 
 - If you cannot name a rejected **Position**, it is probably not an ADR.
+- An ADR never cites one written after it. Only its Status is updated later.
+- An ADR never points at another project document. State the fact instead.
 - If the decision could be reversed with no structural change to the system, it is probably
   not an ADR.
 - Write it when the decision is made, not reconstructed before submission — the rejected

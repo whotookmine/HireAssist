@@ -17,6 +17,8 @@ The course requires **at least 3 ADRs** as part of the project proposal submissi
 | [ADR-002](ADR-002-async-screening-pipeline.md) | One queued message per resume for batch screening | Accepted | 2026-09-11 |
 | [ADR-003](ADR-003-polyglot-persistence.md) | PostgreSQL as system of record, MongoDB for AI-derived documents | Accepted | 2026-09-11 |
 | [ADR-004](ADR-004-llm-access.md) | All model access through one AI Service, on a managed API that does not train on our data | Accepted | 2026-09-11 |
+| [ADR-005](ADR-005-per-service-language.md) | Each service chooses its own language and framework, within shared contracts | **Proposed** | 2026-09-11 |
+| [ADR-006](ADR-006-single-tenant-deployment.md) | One deployment per customer company — the workspace concept is removed | Accepted | 2026-09-11 |
 
 The four are best read in order: ADR-001 draws the boundaries, ADR-002 fills in the busiest one,
 ADR-003 says what each side stores, and ADR-004 fills in the dependency the others are built to
@@ -42,9 +44,11 @@ Identified from the architecturally significant requirements in
 | Erasure cascade — orchestration or choreography, and how the verification pass works across the two stores ADR-003 introduced | FR-5.5, FR-5.11, NFR-13 |
 | Resume ingestion channel — upload only, or an automated adapter | Open question |
 | Front-end framework and the shape of the recruiter-facing web application | Course requirement (UI for demonstration), NFR-16 |
-| Session and token mechanism for UC-0, and how workspace identity travels on internal gRPC calls and broker messages | FR-0.1 – FR-0.3, FR-0.6 |
+| Session and token mechanism for UC-0 | FR-0.1, FR-0.2, FR-0.6 |
+| Deployment and upgrade pipeline for N customer instances | ADR-006 |
 | Scheduler shared by UC-4 and UC-5 — where the timer runs, behaviour with more than one replica, resuming a sweep that dies half-way | FR-4.2, FR-5.2 |
-| Repository structure once implementation starts — monorepo layout, shared protobuf definitions | Open question |
+| Repository structure once implementation starts — monorepo layout, and where the shared `.proto` and OpenAPI definitions live | Open question, ADR-005 |
+| Primary and secondary owner for each service | ADR-005 rule 5 |
 
 ---
 

@@ -2,13 +2,100 @@
 
 A running summary of what changed in this project's documentation and why.
 
-One entry per working session, newest first. Entries record **decisions and their reasons**,
-not file diffs — Git already has the diffs. If a change is worth someone asking "why did we
-do that?", it belongs here.
+One entry per working session, newest first, headed `YYYY-MM-DD HH:MM`. Entries record
+**decisions and their reasons**, not file diffs — Git already has the diffs.
 
-Each entry is written once and then left alone. Later work gets a new entry, even on the same
-day — an entry describes what a session decided, and rewriting it destroys the record of when
-and why something changed.
+**Keep entries short.** A line or two per change: what changed, and why in a clause. If an
+explanation needs a paragraph, it belongs in the ADR or the document itself, and the entry should
+point there instead of repeating it. A changelog nobody scrolls through is a changelog nobody
+reads.
+
+Each entry is written once and then left alone. Later work gets a new entry — an entry describes
+what a session decided, and rewriting it destroys the record of when and why something changed.
+
+---
+
+## 2026-09-12 00:16 — Changelog hook rewritten in POSIX sh
+
+- The hook was Python; `python3` is not guaranteed on a teammate's machine, a shell is. Rewritten
+  in POSIX `sh` with no interpreter and no `jq` dependency.
+- Detection changed from "modified in the last 20 seconds" to "modified since the last check",
+  using `find -newer` against a marker file — POSIX, and it drops the arbitrary time window while
+  keeping the same behaviour: fires on a real change, silent on a read, reports a change once,
+  silent when CHANGELOG.md changed too.
+- Tested: first run, no change, read-only, single change, repeat, docs-plus-changelog, truncation
+  at eight files, JSON validity, and a run under `dash` to confirm no bashisms.
+
+---
+
+## 2026-09-12 00:04 — README stops listing individual ADRs
+
+- The README carried a table of every ADR, which had already drifted once — six records, a
+  description of four. A README that mirrors another index is a second copy that goes stale. It now
+  just says where the records live.
+
+---
+
+## 2026-09-11 23:52 — ADRs made self-contained and shorter; rejection derived, not recorded
+
+- **ADRs no longer reference any project document.** They are read on their own — in review, by a
+  new joiner, lifted out of the repository — so a record that depends on the proposal or the
+  requirements file to make sense is broken the moment it travels. Facts are now stated in place;
+  requirement ids stay for traceability but say what they mean. Rule added to the template.
+- **All six compacted**, roughly 15% shorter with no loss of meaning: restatement cut, sentences
+  tightened, the "one to two pages" guidance made explicit in the template.
+- **Rejection is derived, not recorded.** A candidate missing a must-have is marked not qualified
+  by screening; everyone else simply goes un-shortlisted. The Recruiter shortlists and can override
+  a bad mark, so the reason someone did not advance is the same recorded justification for
+  everyone rather than a free-typed note that varies with the reviewer.
+
+**Outstanding:** service ownership unassigned (blocks ADR-005); erasure cascade and deployment
+pipeline unwritten.
+
+---
+
+## 2026-09-11 23:34 — Retention extension removed (FR-5.4)
+
+- **A Recruiter can no longer extend a candidate's retention.** Under the PDPA data may be kept
+  only as long as the purpose it was collected for requires; keeping someone for a *future*
+  opportunity is a new purpose needing a new basis, so a unilateral extension is exactly what the
+  rule exists to prevent. Data now ages out on schedule, full stop.
+- The requirement was originally *renew consent*, which was lawful. It became *extend retention*
+  when consent storage was dropped earlier today — that edit quietly turned a defensible act into
+  an indefensible one.
+- **FR-5.9 remains the only way expiry is deferred**, and it is justified: it holds expiry for a
+  candidate still in an active hiring process, where the original purpose has not ended.
+- UC-5's warning window now says what it is for — act on anyone still in play before the date
+  passes. 44 requirements; UC-5 is down to 8.
+
+**Outstanding:** whether rejection is recorded by the Recruiter or derived entirely from screening
+(FR-2.9) is still undecided.
+
+---
+
+## 2026-09-11 23:15 — Tenancy removed, ADRs 005 and 006, requirements tightened
+
+- **ADR-006: one deployment per customer.** The workspace concept was never decided — it arrived
+  with the multi-tenant framing and spread unchallenged. Single-tenant means a cross-customer leak
+  cannot happen, at the cost of operating N instances. FR-0.3 withdrawn; UC-0 is now *Sign in* and
+  UC-6 *Manage members and roles*; diagram re-rendered from source.
+- **ADR-005: language per service — Proposed, not Accepted.** ADR-001 had asserted Go in its
+  Assumptions. That assumption is struck; the languages themselves wait on service ownership.
+- **ADRs live only in `adr/`.** The proposal's 144-line summary section is now a linked index, so
+  a decision is stated once and cannot drift.
+- **ADR-001's argument no longer cites the course requirement.** It now rests on fault isolation
+  of the model path and the opposite resource profiles of parsing and scoring.
+- **Six actor gaps closed.** No self-service sign-up (accounts are provisioned); erasure requests
+  arrive by email and an Admin executes them; consent is obtained before upload and no longer
+  stored; the *interviewing* stage is removed; closing a job records *filled* or *cancelled*.
+- **Requirements tightened to 45.** UC-5 lost three restatements and UC-4 one; withdrawn
+  requirements are now deleted rather than struck through, leaving gaps in the ids.
+- **ADRs made time-ordered.** An ADR may only cite one that existed when it was written; later
+  changes go in its Status as a dated amendment. Eleven forward references removed.
+- Integrity pass: all FR, NFR, UC and link references resolve; counts agree everywhere.
+
+**Outstanding:** service ownership unassigned (blocks ADR-005); erasure cascade and deployment
+pipeline unwritten.
 
 ---
 

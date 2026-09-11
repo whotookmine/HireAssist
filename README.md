@@ -32,11 +32,11 @@ Term project for **Software Architecture**, Chulalongkorn University.
 | Document | What it is |
 |---|---|
 | [docs/PROPOSAL.md](docs/PROPOSAL.md) | **The submission document.** Project description, target customers, use cases, requirements, ADRs. Source of truth. |
-| [docs/FUNCTIONAL-REQUIREMENTS.md](docs/FUNCTIONAL-REQUIREMENTS.md) | 50 functional requirements, traced to the use case each serves. |
+| [docs/FUNCTIONAL-REQUIREMENTS.md](docs/FUNCTIONAL-REQUIREMENTS.md) | 44 functional requirements, traced to the use case each serves. |
 | [docs/NON-FUNCTIONAL-REQUIREMENTS.md](docs/NON-FUNCTIONAL-REQUIREMENTS.md) | 17 non-functional requirements, grouped by quality attribute. |
 | [docs/diagrams/](docs/diagrams/) | Diagrams as code (PlantUML) with their rendered SVGs — currently the use case diagram. |
 | [docs/CONTEXT.md](docs/CONTEXT.md) | Internal working notes — open questions, open decisions, glossary. Not for submission. |
-| [docs/adr/INDEX.md](docs/adr/INDEX.md) | Architecture Decision Records index — four recorded so far. |
+| [docs/adr/](docs/adr/) | Architecture Decision Records, one decision per file, with an index. |
 | [docs/course/ASSIGNMENT.md](docs/course/ASSIGNMENT.md) | The assignment brief and submission guideline this proposal is written against. |
 | [docs/course/](docs/course/) | Course requirements and grading breakdown. |
 | [docs/reference/](docs/reference/) | The lecturer's ADR samples (one good, one deliberately poor). |
@@ -48,13 +48,13 @@ Term project for **Software Architecture**, Chulalongkorn University.
 
 | ID | Use Case | Primary Actor |
 |---|---|---|
-| UC-0 | Authenticate into a workspace | Guest |
+| UC-0 | Sign in | Guest |
 | UC-1 | Create a job opening from natural-language requirements | Recruiter |
 | UC-2 | Batch-screen resumes against a job opening | Recruiter |
 | UC-3 | Generate candidate-specific interview questions | Recruiter |
 | UC-4 | Monitor hiring pipeline and stale positions | Recruiter |
 | UC-5 | Enforce candidate data retention | System Scheduler / Admin |
-| UC-6 | Manage workspace access | Admin |
+| UC-6 | Manage members and roles | Admin |
 
 One use case — talent-pool re-matching — is deliberately deferred and recorded as **D-1** in
 the proposal.
@@ -63,15 +63,8 @@ the proposal.
 
 ## Architecture decisions
 
-| ID | Decision |
-|---|---|
-| [ADR-001](docs/adr/ADR-001-service-decomposition.md) | Capability-aligned service decomposition behind an API gateway |
-| [ADR-002](docs/adr/ADR-002-async-screening-pipeline.md) | One queued message per resume for batch screening |
-| [ADR-003](docs/adr/ADR-003-polyglot-persistence.md) | PostgreSQL as system of record, MongoDB for AI-derived documents |
-| [ADR-004](docs/adr/ADR-004-llm-access.md) | All model access through one AI Service, on a managed API that does not train on our data |
-
-Summarised in [the proposal](docs/PROPOSAL.md#adrs); the full records carry the rejected
-alternatives, the negative implications, and the requirement each decision serves.
+Architecture Decision Records live in **[`docs/adr/`](docs/adr/)**, one decision per file, with the
+index and the decisions not yet taken in [`docs/adr/INDEX.md`](docs/adr/INDEX.md).
 
 ---
 

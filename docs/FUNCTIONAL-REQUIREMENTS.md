@@ -3,9 +3,11 @@
 Derived from the use cases in [PROPOSAL.md](PROPOSAL.md). Each requirement is a single
 verifiable statement of *what* the system does, carrying no design or technology choice.
 
-**Numbering** is `FR-<use case>.<n>` so that every requirement traces to the use case it
-serves, and so that adding one does not renumber the rest. IDs are stable once written —
-a withdrawn requirement is struck, never reused.
+**Numbering** is `FR-<use case>.<n>` so that every requirement traces to the use case it serves,
+and so that adding one does not renumber the rest. **IDs are stable once written and never
+reused**, so a withdrawn requirement leaves a gap in the sequence rather than causing a
+renumbering. This document states what the system does today; why a requirement was withdrawn is
+recorded in `../CHANGELOG.md` and, where a decision caused it, in the ADR that made it.
 
 These are referenced from the ADRs and from the Service–Operations–Collaborators table.
 
@@ -16,17 +18,19 @@ normalised record parsed from a resume: contact details, work history, skills an
 The deferred use case **D-1 (talent-pool re-matching)** has no requirements here; it is out of
 scope for this term project.
 
+**One deployment serves one customer company** ([ADR-006](adr/ADR-006-single-tenant-deployment.md)),
+so no requirement below mentions a tenant, and isolation between companies is not something the
+code enforces.
+
 ---
 
-## UC-0 — Authenticate into a workspace
+## UC-0 — Sign in
 
 | ID | Requirement |
 |---|---|
-| FR-0.1 | The system shall authenticate a Guest by email address and password as a member of a workspace, and issue a session token identifying the user, their workspace, and their role, under which the user acts as a Recruiter or an Admin. |
+| FR-0.1 | The system shall authenticate a Guest by email address and password, and issue a session token identifying the user and their role, under which the user acts as a Recruiter or an Admin. |
 | FR-0.2 | The system shall reject any request presenting a missing, invalid, or expired session token. |
-| FR-0.3 | The system shall scope every data access to the workspace identified in the session token, such that no workspace can read or modify another workspace's data. |
 | FR-0.4 | The system shall support two roles, Admin and Recruiter, where Admin holds all Recruiter permissions in addition to its own. |
-| ~~FR-0.5~~ | *Withdrawn — moved unchanged to FR-6.1 when managing workspace access became its own use case, UC-6.* |
 | FR-0.6 | The system shall reject any request requiring a role higher than the requester's assigned role, and record the rejected attempt. |
 
 ## UC-1 — Create a job opening from natural-language requirements
@@ -40,7 +44,7 @@ scope for this term project.
 | FR-1.5 | The system shall identify the parts of a description it could not interpret, and shall allow criteria to be entered manually either to fill those gaps or to replace the derived proposal entirely. |
 | FR-1.6 | The system shall record an expected time-to-fill for each job opening. |
 | FR-1.7 | The system shall store a confirmed job opening in the open state, recording the date it was opened and retaining the original free-text description. |
-| FR-1.8 | The system shall allow a Recruiter or Admin to pause, resume, and close a job opening. |
+| FR-1.8 | The system shall allow a Recruiter or Admin to pause and resume a job opening, and to close it with a recorded outcome of either *filled* or *cancelled*. |
 
 ## UC-2 — Batch-screen resumes against a job opening
 
@@ -54,9 +58,9 @@ scope for this term project.
 | FR-2.6 | The system shall present screening results ranked by score, updating the ranking as further results become available, and shall allow the list to be filtered by minimum score and by individual criterion. |
 | FR-2.7 | The system shall retry failed processing attempts and shall flag any resume it cannot parse or score as requiring manual review, excluding it from the ranking rather than assigning it a score. |
 | FR-2.8 | The system shall allow the Recruiter to override a screening score, and shall retain the original score alongside the override. |
-| FR-2.9 | The system shall allow the Recruiter to record a decision of shortlisted or rejected against each screened candidate, and shall record a reason with every rejection, defaulting to the generated justification and editable by the Recruiter. |
+| FR-2.9 | The system shall allow the Recruiter to shortlist a screened candidate. A candidate who is neither shortlisted nor marked not qualified remains undecided; the system shall not require a rejection to be recorded by hand. |
 | FR-2.10 | The system shall not transmit a rejection reason to the candidate it concerns. |
-| FR-2.11 | The system shall add every screened candidate to the workspace's talent pool, recording their consent status, the date their personal data was collected, and the lawful basis for processing it. |
+| FR-2.11 | The system shall add every screened candidate to the talent pool, recording the date their personal data was collected. |
 | FR-2.12 | The system shall notify the Recruiter when a screening batch has finished processing. |
 
 ## UC-3 — Generate candidate-specific interview questions
@@ -73,38 +77,32 @@ scope for this term project.
 
 | ID | Requirement |
 |---|---|
-| FR-4.1 | The system shall present, for each open job opening, the number of candidates at each pipeline stage (applied, screened, shortlisted, interviewing) and days open against its expected time-to-fill. |
+| FR-4.1 | The system shall present, for each open job opening, the number of candidates at each pipeline stage (applied, screened, shortlisted), days open against its expected time-to-fill, and whether the opening is currently flagged. |
 | FR-4.2 | The system shall evaluate every open job opening against its staleness rule on a recurring schedule, independently of whether any user views the dashboard. |
 | FR-4.3 | The system shall flag a job opening that has been open longer than its expected time-to-fill. |
 | FR-4.4 | The system shall notify the Recruiter responsible for a job opening when that opening is flagged. |
-| FR-4.5 | The system shall indicate flagged job openings on the dashboard. |
-| FR-4.6 | The system shall clear a flag when the job opening is filled or closed, or when the flagged condition is resolved. |
+| FR-4.6 | The system shall clear a flag when the job opening is closed, or when the flagged condition is resolved. |
 | FR-4.7 | The system shall exclude a paused job opening from staleness evaluation. |
 
 ## UC-5 — Enforce candidate data retention
 
 | ID | Requirement |
 |---|---|
-| FR-5.1 | The system shall allow an Admin to configure, per workspace, a retention period, an anchor date of either the consent date or the date of last activity, and an expiry action of deletion or anonymisation. |
-| FR-5.2 | The system shall evaluate candidate records against the workspace's retention policy on a recurring schedule. |
-| FR-5.3 | The system shall flag records entering the warning window before expiry and notify the responsible Recruiter with the affected candidates and their expiry date. |
-| FR-5.4 | The system shall allow consent to be renewed for a candidate, resetting the retention period from the new consent date and clearing the warning. |
-| FR-5.5 | The system shall, on expiry, delete or anonymise everywhere it is held the candidate's personal data — the candidate profile, the stored resume file, screening results and their justification text, and generated interview guides — according to the configured expiry action, as a single operation that leaves no partial record behind. |
-| FR-5.6 | The system shall, when anonymising, remove all identifying data while preserving the aggregate counts used for pipeline metrics. |
-| FR-5.7 | The system shall write an audit entry for each erasure recording what was erased, when, and under which retention policy. |
-| FR-5.8 | The system shall exclude from the audit log the candidate's name, contact details, resume file and its contents, candidate profile field values, screening scores and justification text; each entry shall reference a candidate only by a pseudonymous internal identifier that cannot be resolved to a person once erasure is complete. |
+| FR-5.1 | The system shall allow an Admin to configure a retention period, an anchor date of either the date the data was collected or the date of last activity, and an expiry action of deletion or anonymisation. |
+| FR-5.2 | The system shall evaluate candidate records against the retention policy on a recurring schedule, flagging those entering the warning window before expiry and notifying the responsible Recruiter with the affected candidates and their expiry date. |
+| FR-5.5 | The system shall, on expiry, delete or anonymise everywhere it is held the candidate's personal data — the candidate profile, the stored resume file, screening results and their justification text, and generated interview guides — according to the configured expiry action, as a single operation that leaves no partially erased record in place. |
+| FR-5.6 | The system shall, when anonymising, remove all identifying data while preserving the aggregate counts used for pipeline metrics, such that no later processing can surface the person. |
+| FR-5.7 | The system shall write an audit entry for each erasure recording what was erased, when, and under which retention policy, excluding from that entry the candidate's name, contact details, resume file and its contents, candidate profile field values, screening scores and justification text; each entry shall reference a candidate only by a pseudonymous internal identifier that cannot be resolved to a person once erasure is complete. |
 | FR-5.9 | The system shall hold expiry for a candidate in an active hiring process and flag the record for the Recruiter to decide. |
-| FR-5.10 | The system shall execute an erasure immediately on a candidate's deletion request rather than waiting for the next scheduled evaluation. |
+| FR-5.10 | The system shall allow an Admin to execute an erasure for a named candidate immediately, rather than waiting for the next scheduled evaluation. |
 | FR-5.11 | The system shall, where erasure of stored data fails, retain the record, log the failure, retry, and report the record as deletion pending rather than as erased. |
-| FR-5.12 | The system shall exclude expired candidates from the talent pool such that no later processing can surface them. |
 
-## UC-6 — Manage workspace access
+## UC-6 — Manage members and roles
 
 | ID | Requirement |
 |---|---|
-| FR-6.1 | The system shall allow an Admin to invite a person to the workspace, remove a member, and change a member's role. |
+| FR-6.1 | The system shall allow an Admin to create a member account with an initial password, remove a member, and change a member's role. |
 
 ---
 
-**50 requirements** — UC-0: 5 · UC-1: 8 · UC-2: 12 · UC-3: 5 · UC-4: 7 · UC-5: 12 · UC-6: 1.
-FR-0.5 is withdrawn and not counted.
+**44 requirements** — UC-0: 4 · UC-1: 8 · UC-2: 12 · UC-3: 5 · UC-4: 6 · UC-5: 8 · UC-6: 1.

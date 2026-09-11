@@ -79,7 +79,7 @@ When that ratio breaks, quality collapses in two places:
 | **No decision trail** | Rejections live in someone's head. When someone asks later "why did we pass on this person?", there is no answer, and no way to review whether screening is consistent or fair. |
 | **The archive is dead weight** | Resumes from six months ago sit unused in a folder. When a similar role opens, the SME pays to source candidates all over again — including people who already applied and were a near-miss. |
 | **Positions rot silently** | A requisition that has been open for 90 days looks exactly like one opened last week. Nobody is alerted, so nothing is re-scoped or re-posted. |
-| **PDPA exposure** | Resumes are personal data under Thailand's PDPA. Storing them indefinitely in an inbox with no consent record, no retention limit and no deletion process is a compliance risk that SMEs are least equipped to manage. |
+| **PDPA exposure** | Resumes are personal data under Thailand's PDPA. Storing them indefinitely in an inbox with no retention limit and no deletion process is a compliance risk that SMEs are least equipped to manage. |
 
 ### Why existing options do not solve it
 
@@ -170,8 +170,8 @@ deeper ATS integration are supported.
 | User | Goal | What they get from HireAssist |
 |---|---|---|
 | **Recruiter / HR** *(primary)* | Get through the application backlog, shortlist candidates who can be defended, and interview them well | Ranked, explainable shortlist instead of a folder of unread PDFs; interview questions grounded in that specific resume and role; alerts when a position is stalling; every decision and its reason recorded |
-| **Admin / company owner** | Keep hiring compliant, consistent and auditable, and control who has access | Workspace and member management, data-retention settings, plus recorded rejection reasons, consent status and retention state for every candidate |
-| **Candidate** *(indirect)* | Be judged on evidence, and considered again later | A real reading rather than a 20-second skim; remains eligible for future roles through the talent pool, with consent |
+| **Admin / company owner** | Keep hiring compliant, consistent and auditable, and control who has access | Member and role management, data-retention settings, plus recorded rejection reasons and retention state for every candidate |
+| **Candidate** *(indirect)* | Be judged on evidence, and have their data kept no longer than needed | A real reading rather than a 20-second skim; their data ages out of the system on a defined schedule, and an erasure request is honoured |
 
 ---
 
@@ -187,48 +187,58 @@ The flow it supports end-to-end is:
 
 | ID | Use Case | Primary Actor | Solves (see *Consequences*) |
 |---|---|---|---|
-| UC-0 | Authenticate into a workspace | Guest | — (foundation) |
+| UC-0 | Sign in | Guest | — (foundation) |
 | UC-1 | Create a job opening from natural-language requirements | Recruiter | Slow time-to-screen |
 | UC-2 | Batch-screen resumes against a job opening | Recruiter | Slow time-to-screen, ghosted candidates, no decision trail |
 | UC-3 | Generate candidate-specific interview questions | Recruiter | Unprepared, generic interviews |
 | UC-4 | Monitor hiring pipeline and stale positions | Recruiter | Positions rot silently |
 | UC-5 | Enforce candidate data retention | System Scheduler / Admin | PDPA exposure |
-| UC-6 | Manage workspace access | Admin | — (foundation) |
+| UC-6 | Manage members and roles | Admin | — (foundation) |
 
 **Actors**
 
 | Actor | Description |
 |---|---|
-| **Guest** | Anyone who has reached HireAssist but has not signed in. Primary actor of UC-0. On signing in they act as a **Recruiter** or an **Admin**, according to the role their workspace gave them — so wherever these documents name a Recruiter or an Admin, that person is already signed in. |
-| **Recruiter** | A signed-in workspace member who runs day-to-day hiring — an HR generalist, a founder, or a tech lead hiring for their own team. Primary actor of UC-1 through UC-4: creates job openings, screens resumes, prepares interview questions, and monitors the pipeline. |
-| **Admin** | The signed-in workspace owner. Has every Recruiter capability, and additionally configures the data-retention policy (UC-5) and manages members and roles (UC-6). |
-| **Candidate** | *Indirect actor.* Does not log in. Supplies a resume and a consent decision; is the subject of the data the system processes. |
+| **Guest** | Anyone who has reached HireAssist but has not signed in. Primary actor of UC-0. On signing in they act as a **Recruiter** or an **Admin**, according to the role their account was given — so wherever these documents name a Recruiter or an Admin, that person is already signed in. |
+| **Recruiter** | A signed-in member who runs day-to-day hiring — an HR generalist, a founder, or a tech lead hiring for their own team. Primary actor of UC-1 through UC-4: creates job openings, screens resumes, prepares interview questions, and monitors the pipeline. |
+| **Admin** | The signed-in owner of the installation. Has every Recruiter capability, and additionally configures the data-retention policy (UC-5) and manages members and roles (UC-6). |
+| **Candidate** | *Indirect actor.* Does not log in and has no interface in the system. Supplies the resume, and is the subject of the data processed. An erasure request from them arrives out of band, by email, and an Admin executes it (FR-5.10). |
 | **System Scheduler** | *Supporting actor.* Time-driven trigger that runs work no human initiates: staleness checks (UC-4) and retention enforcement (UC-5). |
 
 ---
 
-### UC-0 — Authenticate into a workspace
+### UC-0 — Sign in
 
 **Actor:** Guest
-**Goal:** Prove who they are and enter their company's workspace with the permissions of their role.
+**Goal:** Prove who they are and enter the system with the permissions of their role.
 
 **Description**
 
 Every other use case operates on personal data, so all of them require an authenticated session;
 this use case is the precondition for the rest. Its actor is a **Guest** — anyone who has reached
-HireAssist but has not yet signed in. The Guest signs in and receives a session scoped to one
-**workspace** (one company) and carrying their **role**. From that moment they act as a
+HireAssist but has not yet signed in. The Guest signs in and receives a session carrying their
+**role**. From that moment they act as a
 **Recruiter** or an **Admin**, according to that role, and every other use case is performed under
 that identity. This is why the other use cases name Recruiter and Admin as their actors and need not
 repeat the sign-in: being a Recruiter or an Admin already means being signed in.
 
-All data access is scoped to the workspace in the session, so no company can see another's
-candidates, and every request is checked against the role the session carries. Who may sign in to
-a workspace, and with which role, is decided by an Admin in UC-6.
+Every request is checked against the role the session carries. Who may sign in, and with which
+role, is decided by an Admin in UC-6.
+
+**One deployment serves one company.** HireAssist is installed separately for each customer, so a
+company's candidates are not merely hidden from other companies — they are not in the same system
+at all. Isolation is a property of the deployment rather than something the code maintains
+([ADR-006](adr/ADR-006-single-tenant-deployment.md)).
+
+**There is no self-service route into the system.** HireAssist has no public sign-up and no
+password-reset flow. The first Admin account is provisioned directly by the development team when
+a company is onboarded, and every other account is created by that Admin in UC-6. A Guest is
+therefore always someone who has already been given credentials — never a stranger creating an
+account.
 
 **Main flow**
 1. Guest signs in with their email address and password.
-2. System authenticates them and issues a session token carrying their workspace and role.
+2. System authenticates them and issues a session token carrying their role.
 3. The user now acts as a Recruiter or an Admin, according to that role.
 4. Every subsequent request is authorised at the gateway against that token.
 
@@ -247,7 +257,7 @@ both a security requirement and a PDPA obligation.
 **Actor:** Recruiter
 **Goal:** Turn the way a role is actually described in conversation into structured, machine-usable screening criteria — without filling in a long form.
 
-**Precondition:** Recruiter is authenticated into a workspace (UC-0).
+**Precondition:** Recruiter is signed in (UC-0).
 
 **Description**
 
@@ -269,7 +279,8 @@ On confirmation the job opening is saved in an **open** state, with the date it 
 recorded, and becomes the target that UC-2 screens resumes against. From there the Recruiter
 controls its lifecycle: an opening can be **paused** when hiring is put on hold — which also
 suspends the staleness alerts in UC-4, so those alerts stay meaningful — **resumed**, or
-**closed** once the role is filled or abandoned.
+**closed** with a recorded outcome — *filled* when someone is hired, *cancelled* when the role
+is abandoned.
 
 **Main flow**
 1. Recruiter opens "New Job Opening" and pastes a free-text description (Thai or English).
@@ -319,16 +330,19 @@ so explanation is a required output, not a feature.
 Where a must-have criterion is not met the candidate is marked **not qualified**, recording
 which criterion caused it. The ranked list can be filtered by minimum score or by an individual
 criterion, so a Recruiter can ask "who actually has production Go?" without re-reading anything.
-The Recruiter reviews the ranked list, overrides anything the AI got wrong, and marks
-candidates as **shortlisted** or **rejected**. Rejection captures the reason — the AI's
-justification, edited or replaced by the Recruiter. This reason is **internal**: it exists to
-give the Recruiter and Admin an audit trail and a consistency check, and is never automatically sent
-to the Candidate.
+The Recruiter reviews the ranked list, overrides anything the AI got wrong, and **shortlists**
+the people worth interviewing. Rejection is not a button anyone presses: a candidate who misses a
+must-have is marked not qualified by the screening itself, and everyone else simply goes
+un-shortlisted. The reason a candidate did not advance is therefore the same recorded
+justification for every candidate, rather than a free-typed note that varies with whoever was
+reviewing. That justification is **internal** — it gives the Recruiter and Admin an audit trail
+and a consistency check, and is never sent to the Candidate.
 
-Every screened candidate is added to the **talent pool**, recording their consent status, the
-date their personal data was collected, and the lawful basis for processing it — the facts UC-5
-needs to enforce retention later. The pool is retained and governed by UC-5, and is the
-foundation the deferred re-matching use case (D-1) will build on.
+Every screened candidate is added to the **talent pool**, recording the date their personal data
+was collected — the fact UC-5 needs to enforce retention later. Consent to process the resume is
+obtained before it reaches HireAssist, through whichever channel the candidate applied by; the
+system records when the data arrived, not the consent itself. The pool is retained and governed
+by UC-5, and is the foundation the deferred re-matching use case (D-1) will build on.
 
 **Main flow**
 1. Recruiter selects an open job opening and uploads a batch of resume files in PDF format.
@@ -336,16 +350,16 @@ foundation the deferred re-matching use case (D-1) will build on.
 3. System parses each resume into a normalised candidate profile.
 4. System scores each profile against the job criteria and generates a justification.
 5. System streams results into the ranked shortlist view as they complete, and notifies the Recruiter once the batch has finished processing.
-6. Recruiter reviews the ranking, adjusts any score or decision, and marks candidates shortlisted or rejected.
-7. System records each decision with its reason, and adds every candidate to the talent pool with consent status.
+6. Recruiter reviews the ranking, overrides any score the AI got wrong, and shortlists candidates.
+7. System records each shortlist decision, and adds every candidate to the talent pool with the date their data was collected.
 
 **Alternate flows**
 - *3a. A file is unreadable* (corrupt, or a scanned image with no extractable text layer) —
   that resume is flagged for manual handling; the rest of the batch continues unaffected.
 - *4a. The AI scoring service is unavailable* — affected resumes are retried; if they still
   fail they are marked *needs manual review* rather than silently scored zero.
-- *6a. Recruiter disagrees with a score* — they override it; the override is stored alongside
-  the original AI score so screening quality can be reviewed later.
+- *6a. Recruiter disagrees with a score or a not-qualified mark* — they override it; the override
+  is stored alongside the original AI score so screening quality can be reviewed later.
 
 **Outcome:** A ranked, explained shortlist produced in one pass instead of hours of reading,
 with every decision and its reason recorded, and every candidate retained in the talent pool.
@@ -408,7 +422,7 @@ or spreadsheet raises a hand. The result is positions that quietly rot — never
 re-posted, never escalated.
 
 The dashboard gives the Recruiter one view across all open positions: for each, the funnel
-(**applied → screened → shortlisted → interviewing**) and days open against the expected
+(**applied → screened → shortlisted**) and days open against the expected
 time-to-fill set in UC-1. Seeing the two together is what makes a problem legible — a role with
 200 applicants, one shortlist and 60 days on the clock has a criteria problem, not a supply
 problem.
@@ -423,7 +437,7 @@ depend on someone remembering to look.
 
 **Main flow**
 1. Recruiter opens the dashboard.
-2. System aggregates pipeline metrics across all open positions in the workspace.
+2. System aggregates pipeline metrics across all open positions.
 3. System displays per-position funnels and days open vs. expected time-to-fill.
 4. System highlights positions currently flagged as stale or blocked.
 5. Recruiter drills into a position to see its candidates and act.
@@ -432,7 +446,7 @@ depend on someone remembering to look.
 1. Scheduler periodically evaluates every open position against its staleness rule.
 2. Positions breaching the rule are flagged and an alert is published.
 3. The Recruiter responsible for the position is notified.
-4. The flag is cleared when the position is filled or closed, or the condition is resolved.
+4. The flag is cleared when the position is closed, or the condition is resolved.
 
 **Alternate flows**
 - *4a. A position is deliberately paused* — it is excluded from staleness alerts while paused, so the alerts stay meaningful.
@@ -447,7 +461,7 @@ raises its own hand instead of waiting to be noticed.
 **Actors:** System Scheduler (primary), Admin (configures the policy)
 **Goal:** Make sure resumes and candidate data are not kept longer than the company is entitled to keep them — automatically, without anyone remembering to check.
 
-**Preconditions:** A retention policy is configured for the workspace. Candidate records exist in the talent pool.
+**Preconditions:** A retention policy is configured. Candidate records exist in the talent pool.
 
 **Description**
 
@@ -459,9 +473,9 @@ archive of personal data it has no lawful basis to hold — and the more success
 talent pool is, the larger that liability grows.
 
 HireAssist makes retention a property of the system rather than a task someone forgets.
-An **Admin** configures the workspace's retention policy: how long a Candidate's data may
-be kept (for example 12 months), measured from a defined anchor — the date consent was
-given, or the Candidate's last activity in a hiring process. The Admin also chooses what
+An **Admin** configures the retention policy: how long a Candidate's data may
+be kept (for example 12 months), measured from a defined anchor — the date the data was
+collected, or the Candidate's last activity in a hiring process. The Admin also chooses what
 happens on expiry: **permanent deletion** of the resume and profile, or **anonymisation**,
 which destroys all identifying data while preserving the aggregate counts the pipeline
 dashboard (UC-4) is built from, so historical hiring metrics survive the erasure of the
@@ -469,8 +483,11 @@ person.
 
 The **System Scheduler** then evaluates the talent pool on a recurring basis. Records
 approaching expiry enter a **warning window**: the Recruiter is notified that a set of
-candidates will expire on a given date, which is the moment to act — re-obtain consent
-for a Candidate worth keeping, or simply let them go. Records that pass the expiry date
+candidates will expire on a given date. That is the moment to act on anyone still worth acting
+on — move them forward in a live hiring process — because once the date passes they are gone.
+Data is not kept longer simply because someone would like to keep it: under the PDPA it may be
+held only as long as the purpose it was collected for requires, and wanting to look at a
+candidate again later is a different purpose. Records that pass the expiry date
 are removed or anonymised according to the policy — reaching every place the data is held, the
 profile, the stored resume file, screening results and their justification text, and generated
 interview guides, as one operation that leaves no partial record behind. Every action is written
@@ -487,14 +504,13 @@ justifies keeping their data is still live.
 1. Admin configures the retention period, the anchor date, and the expiry action (delete or anonymise).
 2. Scheduler periodically evaluates every candidate record against the policy.
 3. Records entering the warning window are flagged, and the responsible Recruiter is notified with the list and the expiry date.
-4. Recruiter may extend a record by renewing consent, or take no action and allow expiry.
+4. Recruiter acts on anyone still in play, or takes no action and allows expiry.
 5. On the expiry date the system deletes or anonymises the record and everything derived from it, including stored resume files.
 6. System writes an audit entry for each action and removes the Candidate from the talent pool.
 
 **Alternate flows**
 - *2a. Candidate is in an active hiring process* (shortlisted, scheduled, or awaiting a decision) — expiry is held and the record flagged for the Recruiter, since the original purpose is still active.
-- *4a. Consent is renewed* — the retention clock resets from the new consent date and the warning is cleared.
-- *5a. A candidate requests deletion before expiry* — the erasure runs immediately rather than waiting for the schedule.
+- *5a. A candidate requests deletion before expiry* — the request arrives by email, outside the system; an Admin executes the erasure immediately rather than waiting for the schedule.
 - *5b. Deletion of a stored file fails* — the record is retained, the failure is logged and retried, and the record is reported as *deletion pending* rather than being marked erased.
 
 **Outcome:** Candidate data ages out of the system on a defined schedule with an auditable
@@ -503,17 +519,18 @@ liability — and no one has to remember to do it.
 
 ---
 
-### UC-6 — Manage workspace access
+### UC-6 — Manage members and roles
 
 **Actor:** Admin
-**Goal:** Control who belongs to the company's workspace and what each member is allowed to do.
+**Goal:** Control who has access to the system and what each member is allowed to do.
 
 **Description**
 
 Access to candidate data is a PDPA obligation as much as a security concern, so deciding who has
-it belongs to one role. An Admin invites a person into the workspace and assigns them a role —
+it belongs to one role. An Admin creates an account for a person and assigns them a role —
 **Admin** or **Recruiter** — removes a member who should no longer have access, or changes a
-member's role. The role decides what that person may do once they sign in (UC-0): a Recruiter
+member's role. Because there is no self-service sign-up, creating a member means creating their
+account outright, with an initial password the Admin passes to them out of band. The role decides what that person may do once they sign in (UC-0): a Recruiter
 creates job openings, screens resumes, prepares interview questions and monitors the pipeline,
 while an Admin does all of that and additionally configures data retention (UC-5) and manages
 access here.
@@ -524,9 +541,10 @@ task that only an Admin performs. Folding the two together hid the Admin's disti
 inside a use case that everyone participates in.
 
 **Main flow**
-1. Admin chooses to invite a person, remove a member, or change a member's role.
-2. For an invitation, Admin enters the person's email address and assigns a role — Admin or Recruiter.
-3. System applies the change to the workspace's membership.
+1. Admin chooses to create a member account, remove a member, or change a member's role.
+2. To create one, Admin enters the person's email address, sets an initial password, and assigns a role — Admin or Recruiter.
+3. System applies the change to the membership list.
+4. Admin passes the credentials to the new member outside the system.
 
 **Alternate flows**
 - *1a. A Recruiter attempts any of these actions* — the request is rejected and the attempt
@@ -570,9 +588,9 @@ left in the diagram as a feature the rest of the proposal does not deliver.
 - ***Admin** specialises **Recruiter**, drawn as an actor generalisation arrow from Admin to
   Recruiter: an Admin inherits every Recruiter association (UC-1 to UC-4). Only Admin's own
   associations are drawn separately: configuring the retention policy (UC-5) and managing
-  workspace access (UC-6). Repeating the inherited ones would add lines without adding meaning.*
-- ***Candidate** is an indirect actor — they never log in. They supply the resume and the consent
-  decision that UC-2 processes, shown as a dashed association.*
+  members and roles (UC-6). Repeating the inherited ones would add lines without adding meaning.*
+- ***Candidate** is an indirect actor — they never log in and have no interface. They supply the
+  resume that UC-2 processes, shown as a dashed association.*
 
 ---
 
@@ -590,7 +608,7 @@ everything else working first. It cannot be demonstrated meaningfully until ther
 with real depth, which only exists after UC-2 has been used repeatedly over time; a re-match run
 against an empty or shallow pool proves nothing. It also compounds risk: it multiplies scoring
 cost across the whole archive, and it processes personal data for a purpose other than the one it
-was collected for, which raises consent questions that UC-5 must be trusted to answer first.
+was collected for, which raises lawful-basis questions that UC-5 must be trusted to answer first.
 
 **What we are doing now to keep it viable**
 
@@ -601,8 +619,8 @@ re-matching can be added later without rework:
   as an attachment to one job opening — so the pool exists and grows from day one.
 - Scoring is designed as a **separable behaviour** operating on *(profile, criteria)*, so it can be
   invoked over an archive rather than only over an incoming batch.
-- UC-5 maintains the **consent and retention state** that any lawful re-matching would have to
-  respect, and removes expired candidates from the pool entirely.
+- UC-5 maintains the **retention state** that any lawful re-matching would have to respect, and
+  removes expired candidates from the pool entirely.
 
 **The parked use case, for the record**
 
@@ -627,10 +645,11 @@ positions against candidates added since the last run. *(Which of these is prima
 is triggered, would be settled by an ADR if this use case is reinstated.)*
 
 Because re-matching processes personal data collected for an *earlier* purpose, it is
-**gated by consent and retention**. Candidates whose consent was not given for future matching,
-or whose retention period has expired, are excluded from the pool — they are never scored,
-and the Recruiter is told how many candidates were excluded on those grounds rather than being
-shown a silently shortened list.
+**gated by retention**. Candidates whose retention period has expired are excluded from the pool —
+they are never scored, and the Recruiter is told how many candidates were excluded on that ground
+rather than being shown a silently shortened list. Whether an earlier application is a lawful
+basis for matching against a later role is a question this deferred use case would have to answer
+before it could be built.
 
 Results arrive as a notification: *"7 candidates from your talent pool match Platform Engineer;
 2 meet all must-haves."* From there the Recruiter treats them exactly like freshly screened
@@ -638,16 +657,16 @@ candidates — same ranked view, same explanations, same shortlist and rejection
 
 **Main flow**
 1. Trigger fires — the Recruiter requests a re-match, or the System Scheduler initiates a periodic run.
-2. System selects candidates from the talent pool that are consent-valid and within retention.
+2. System selects candidates from the talent pool that are within retention.
 3. System scores each against the job opening's criteria (reusing UC-2's scoring behaviour).
 4. System filters to matches above the relevance threshold.
-5. System notifies the Recruiter with a summary of matches and the number of candidates excluded for consent/retention reasons.
+5. System notifies the Recruiter with a summary of matches and the number of candidates excluded on retention grounds.
 6. Recruiter opens the results, reviews the ranked matches with their explanations, and shortlists or dismisses each.
 
 **Alternate flows**
-- *2a. Pool is empty or fully consent-excluded* — the system reports this explicitly instead of returning "no matches".
+- *2a. Pool is empty, or every candidate in it has expired* — the system reports this explicitly instead of returning "no matches".
 - *4a. No candidate clears the threshold* — the Recruiter is told the pool was searched and nothing qualified, so a null result is still informative.
-- *6a. A candidate withdraws consent or requests deletion* — they are removed from the pool and excluded from all future re-matching.
+- *6a. A candidate requests deletion* — they are removed from the pool and excluded from all future re-matching.
 
 **Outcome:** Qualified candidates the company already paid to attract are resurfaced automatically
 and lawfully, turning a dead archive into a live sourcing channel.
@@ -658,19 +677,19 @@ and lawfully, turning a dead archive into a live sourcing channel.
 
 ## Functional Requirements
 
-The full set of 50 functional requirements is maintained in
+The full set of 44 functional requirements is maintained in
 **[FUNCTIONAL-REQUIREMENTS.md](FUNCTIONAL-REQUIREMENTS.md)**, grouped by the use case each one
 serves and numbered `FR-<use case>.<n>` for traceability.
 
 | Use case | Requirements | Count |
 |---|---|---|
-| UC-0 Authenticate into a workspace | FR-0.1 – FR-0.6 (FR-0.5 withdrawn) | 5 |
+| UC-0 Sign in | FR-0.1, FR-0.2, FR-0.4, FR-0.6 | 4 |
 | UC-1 Create a job opening from natural-language requirements | FR-1.1 – FR-1.8 | 8 |
 | UC-2 Batch-screen resumes against a job opening | FR-2.1 – FR-2.12 | 12 |
 | UC-3 Generate candidate-specific interview questions | FR-3.1 – FR-3.5 | 5 |
-| UC-4 Monitor hiring pipeline and stale positions | FR-4.1 – FR-4.7 | 7 |
-| UC-5 Enforce candidate data retention | FR-5.1 – FR-5.12 | 12 |
-| UC-6 Manage workspace access | FR-6.1 | 1 |
+| UC-4 Monitor hiring pipeline and stale positions | FR-4.1 – FR-4.4, FR-4.6, FR-4.7 | 6 |
+| UC-5 Enforce candidate data retention | FR-5.1, FR-5.2, FR-5.5 – FR-5.7, FR-5.9 – FR-5.11 | 8 |
+| UC-6 Manage members and roles | FR-6.1 | 1 |
 
 The deferred use case D-1 has no functional requirements.
 
@@ -693,152 +712,38 @@ attribute each one serves and paired with how it is verified.
 
 All figures are initial targets that give the architecture direction, to be revised once load
 testing produces measured results. PDPA compliance is not stated as a single requirement because
-it is not verifiable as one; it is the combined effect of NFR-12 to NFR-14 and FR-5.1 to FR-5.12.
+it is not verifiable as one; it is the combined effect of NFR-12 to NFR-14 and the UC-5
+retention requirements.
 
 Five groups of these are architecturally significant and are each answered by an ADR — listed at
 the end of [NON-FUNCTIONAL-REQUIREMENTS.md](NON-FUNCTIONAL-REQUIREMENTS.md).
 
 ## ADRs
 
-Four architecture decisions are recorded so far, each in its own file under
-[`adr/`](adr/) using the Jeff Tyree & Art Akerman template described in
-[`adr/TEMPLATE.md`](adr/TEMPLATE.md). The full records carry the rejected alternatives, the
-arguments, the negative implications, and the mapping to the functional and non-functional
-requirements each decision serves; what follows is a summary and the connective tissue between
-them.
+Architecture Decision Records live in **[`adr/`](adr/)**, one decision per file, using the Jeff
+Tyree & Art Akerman template described in [`adr/TEMPLATE.md`](adr/TEMPLATE.md). They are the
+record itself — this section is only an index, so that a decision is stated in exactly one place
+and cannot drift between a summary and the record it summarises.
 
-They are best read in order. **ADR-001** draws the service boundaries; **ADR-002** fills in the
-busiest one; **ADR-003** says what each side of those boundaries stores; **ADR-004** fills in the
-external dependency the other three are built to survive.
+| ID | Decision | Status |
+|---|---|---|
+| [ADR-001](adr/ADR-001-service-decomposition.md) | Capability-aligned service decomposition behind an API gateway — five services, the protocol at each boundary, and Kubernetes for service discovery | Accepted |
+| [ADR-002](adr/ADR-002-async-screening-pipeline.md) | One queued message per resume for batch screening — at-least-once delivery, idempotent results, classified retries, dead-lettering | Accepted |
+| [ADR-003](adr/ADR-003-polyglot-persistence.md) | PostgreSQL as system of record, MongoDB for AI-derived documents, object storage for resume files | Accepted |
+| [ADR-004](adr/ADR-004-llm-access.md) | All model access through one AI Service, on a managed API that does not train on our data | Accepted |
+| [ADR-005](adr/ADR-005-per-service-language.md) | Each service chooses its own language and framework, within shared contracts | **Proposed** — languages await service ownership |
+| [ADR-006](adr/ADR-006-single-tenant-deployment.md) | One deployment per customer company — the workspace concept is removed and isolation becomes a property of deployment | Accepted |
 
-### ADR-001 — Capability-aligned service decomposition behind an API gateway
+They are best read in order: **ADR-001** draws the service boundaries, **ADR-002** fills in the
+busiest one, **ADR-003** says what each side of those boundaries stores, and **ADR-004** fills in
+the external dependency the other three are built to survive. **ADR-005** proposes how each
+service's language is chosen and the contract and telemetry rules that would keep several
+languages coherent — recorded as *Proposed*, because the languages themselves wait on service
+ownership.
 
-HireAssist is five services behind one gateway: **Identity & Workspace** (UC-0, UC-6), **Hiring**
-(UC-1, UC-2, UC-3), **Resume Processing** (the per-resume work of UC-2), **AI** (every model
-call), and **Compliance & Insights** (UC-4, UC-5). The boundaries follow three properties that
-genuinely differ across the system — who triggers the work (a human, a queued message, or the
-clock), how long it may take (milliseconds, minutes, or a sweep of the talent pool), and what
-data it owns — rather than following technical layers.
+Each record carries its rejected alternatives, the argument, the negative implications, and the
+mapping to the functional and non-functional requirements it serves.
 
-The communication style at each boundary follows what crosses it: **REST** for the public,
-browser-facing API through the gateway; **gRPC** into the AI Service, where the contract
-*(profile, criteria) → (score, must-have check, justification)* must not drift; and **RabbitMQ**
-between Hiring and Resume Processing, and for the domain events Compliance & Insights consumes.
-**Service discovery is Kubernetes** — ClusterIP Services and in-cluster DNS, with readiness
-probes deciding which Pods receive traffic, so discovery and health checking are one mechanism
-rather than two that can disagree. All services are written in **Go**.
-
-Rejected: a modular monolith (which would leave the recruiter-facing API sharing a process with
-work that blocks on an external model), one service per use case (UC-1/2/3 share the same two
-aggregates, so splitting them buys network calls and no isolation), decomposition by technical
-layer, and a separate service registry such as Consul.
-
-The cost is accepted openly: candidate data is now distributed, so UC-5's erasure (FR-5.5) must
-reach across services and "deleted" becomes eventually consistent; UC-4's dashboard cannot be a
-query and must be maintained from events; and the team must learn Kubernetes alongside everything
-else.
-
-### ADR-002 — One queued message per resume for batch screening
-
-UC-2 accepts a batch and returns immediately (FR-2.2, within the two seconds NFR-04 allows); each
-resume then travels as **its own message** on RabbitMQ, consumed in parallel by Resume Processing
-replicas. The batch is a count of entries, not a unit of work — which is the decision that
-matters, because it makes the unit of failure the same size as the failure. One corrupt file
-damages one result, not two hundred (FR-2.4).
-
-Delivery is at-least-once (durable quorum queues, publisher confirms, acknowledgement only after
-the result is committed), and redelivery is made harmless by writing results as an upsert keyed on
-`(batch_id, resume_id)`. Failures are classified before they are retried: permanent ones — a
-corrupt file, or a scanned image with no text layer — go straight to *needs manual review*;
-transient ones — rate limits, timeouts, provider errors, or a scoring attempt exceeding NFR-02's
-60-second bound — retry with exponential backoff and are dead-lettered once the budget is
-exhausted, never silently scored zero (FR-2.7). A batch is complete when every entry reaches a
-terminal state, which is what triggers the batch-finished notification (FR-2.12); a
-reconciliation sweep re-publishes entries that have sat pending too long.
-
-**This is where the project's demonstrated software quality attribute is delivered.** The
-attribute is **Scalability**, and NFR-07 is the measurement: batch throughput rises in
-proportion as screening workers are added. The per-resume message is the mechanism — there is no
-in-process work distributor to saturate, no batch-level lock and no ordering constraint, so
-throughput is a deployment parameter changed by adding consumers. The same design is what makes
-NFR-10 — *no accepted resume is ever lost* — true, and the two load tests the course requires are
-designed against those two requirements together: a comparative test of the same 100-resume
-burst at one, two and four workers, and a fault-injection test with the model provider
-deliberately failed, showing zero lost messages and the batch completing once the provider
-returns. Throughput bought by dropping work is not throughput.
-
-Rejected: a synchronous request the recruiter waits on; one message per batch (a retry would
-re-process and re-pay for all 200 resumes); Kafka, whose per-partition ordering means one slow
-resume blocks every message behind it — the exact failure this design exists to prevent; NATS
-JetStream; and a PostgreSQL job table, which would put batch contention on the same database
-serving recruiter traffic.
-
-### ADR-003 — PostgreSQL as system of record, MongoDB for AI-derived documents
-
-The data splits by what happens when it is wrong. **PostgreSQL** holds everything whose
-correctness is load-bearing — memberships and roles, job openings and criteria, batches and their
-per-entry status, decisions with their reasons and human overrides, consent status with the
-collection date and lawful basis (FR-2.11), the retention policy, and the append-only audit logs.
-**MongoDB** holds what the model derives — parsed Candidate Profiles, extracted resume text,
-per-criterion scoring output with its evidence and justification (NFR-15), and interview guides.
-Resume files themselves live in object storage; PostgreSQL holds the key.
-
-The rule recorded for future data: *if getting it wrong is a correctness or compliance problem it
-goes in PostgreSQL; if the model produced it and its shape changes when the prompt changes it goes
-in MongoDB; nothing in PostgreSQL may depend on a MongoDB document for its correctness.*
-
-The architectural reason for the split — not merely the course's two-database requirement — is
-UC-5's **anonymise** action (FR-5.6). Keeping identifying material physically separate from the
-counts the UC-4 dashboard is built from turns anonymisation into *drop the documents, keep the
-rows*: coarse, verifiable, and provable to a regulator, instead of a field-by-field rewrite that
-is one missed column away from a compliance failure.
-
-Rejected: PostgreSQL alone with `jsonb` (a genuinely strong option, and the record says so);
-MongoDB alone (consent, membership and the audit log are exactly what must not drift); PostgreSQL
-+ Redis (a cache is not a store); and PostgreSQL + Elasticsearch (full-text ranking is D-1's
-problem, and D-1 is deferred).
-
-The accepted cost is that no transaction spans the two stores, so the single-operation erasure
-FR-5.5 demands is a sequenced operation with a verification pass and the *deletion pending* state
-of FR-5.11 — which is the architectural cause of UC-5's alternate flow 5b.
-
-### ADR-004 — All model access through one AI Service, on a managed API that does not train on our data
-
-Every model call in UC-1, UC-2 and UC-3 goes through the **AI Service**, which is the only
-component holding a model credential or a prompt. It exposes domain operations —
-`ExtractCriteria`, `ScoreProfile`, `GenerateInterviewGuide` — so the provider never appears in
-another service's contract. This is NFR-17 made structural: the scoring model or prompt changes
-without touching any other service.
-
-The provider must be a **managed API whose terms exclude training on our inputs**. This is not a
-preference: a provider that trains on submitted data absorbs every resume into a model weight we
-cannot delete from, which would make UC-5's erasure promise false from the first batch screened.
-The initial choice is the Anthropic Claude API; comparable paid tiers from other providers remain
-substitutes, because the provider is configuration rather than code. Cost and exposure are
-controlled in one place — minimise what is sent, with the protected attributes NFR-14 names
-stripped before the prompt; cache by content; budget per workspace and per batch; meter every
-call — and the **model version is recorded with every score**, so a justification written in
-March can still be explained in September.
-
-**There is no fallback model.** Rejected alternatives include self-hosting an open-weight model
-(the strongest privacy answer, rejected for lack of any GPU and materially weaker Thai-language
-quality, and recorded as the first thing to revisit if hardware appears) and a managed-plus-local
-hybrid — rejected because a fallback makes a candidate's score depend on which model happened to
-be healthy, and two candidates in the same batch would then be ranked against each other on
-incomparable scores.
-
-The accepted cost is stated plainly: during a provider outage screening produces no scores at all.
-Work waits in the queue and, if the outage outlives the retry budget, lands in *needs manual
-review*. That is the pair ADR-002 and ADR-004 form — running without a fallback is only acceptable
-because NFR-10 holds and no queued work is lost. It also means per-candidate cost scales linearly
-with applicant volume, that the provider's rate limit rather than our worker count may become the
-ceiling on NFR-07, and that personal data crosses a border, which the consent text must disclose.
-
-### Still open
-
-Seven candidate decisions remain, tracked in [`adr/INDEX.md`](adr/INDEX.md) with the requirement
-that forces each: a tiered screening pipeline with a deterministic filter before the model; the
-erasure cascade — orchestration or choreography; the resume ingestion channel; the front-end
-framework; the session and token mechanism for UC-0 and how workspace identity travels on
-internal calls; the scheduler shared by UC-4 and UC-5; and the repository structure. Each will be
-recorded as an ADR when it is decided.
+Decisions identified but not yet taken are listed in [`adr/INDEX.md`](adr/INDEX.md) with the
+requirement that forces each; open questions behind them are tracked in
+[`CONTEXT.md`](CONTEXT.md).

@@ -34,17 +34,17 @@ actor "System Scheduler" as SCH
 actor "Candidate" as CD
 
 rectangle "HireAssist" {
-  usecase "UC-0\nAuthenticate into\na workspace" as UC0
+  usecase "UC-0\nSign in" as UC0
   usecase "UC-1\nCreate a job opening from\nnatural-language requirements" as UC1
   usecase "UC-2\nBatch-screen resumes\nagainst a job opening" as UC2
   usecase "UC-3\nGenerate candidate-specific\ninterview questions" as UC3
   usecase "UC-4\nMonitor hiring pipeline\nand stale positions" as UC4
   usecase "UC-5\nEnforce candidate\ndata retention" as UC5
-  usecase "UC-6\nManage workspace\naccess" as UC6
+  usecase "UC-6\nManage members\nand roles" as UC6
 }
 
 ' Admin specialises Recruiter: it inherits every Recruiter association (UC-1 to UC-4)
-' and adds its own — configuring the retention policy (UC-5) and managing access (UC-6).
+' and adds its own — configuring the retention policy (UC-5) and managing members (UC-6).
 R <|- AD
 
 R --- UC1

@@ -23,10 +23,10 @@ in class.
 
 `docs/PROPOSAL.md` uses these exact headings, in this order. Do not rename or reorder them.
 
-The Functional and Non-functional Requirements sections hold a summary and point to
-`FUNCTIONAL-REQUIREMENTS.md` and `NON-FUNCTIONAL-REQUIREMENTS.md`, which carry the full lists.
-**Before submitting, inline those two lists back into the proposal** — the brief asks for one
-document, and a marker should not have to follow links.
+The Functional Requirements, Non-functional Requirements and ADRs sections hold a summary or an
+index and point to `FUNCTIONAL-REQUIREMENTS.md`, `NON-FUNCTIONAL-REQUIREMENTS.md` and `adr/`,
+which carry the full content. **Before submitting, inline all three back into the proposal** —
+the brief asks for one document, and a marker should not have to follow links.
 
 The "sample in Supplementary Materials" is in [`../reference/`](../reference/) —
 `adr-sample-good.pdf` and `adr-sample-bad.pdf`.
@@ -118,6 +118,6 @@ Invitation Email` was removed once it turned out no use case or requirement desc
 | Target Customers | `PROPOSAL.md` | Done |
 | Scenario (use-case & description) | `PROPOSAL.md` | Done — 7 use cases, above the minimum of 3 |
 | Use Case Diagram | `PROPOSAL.md` → `diagrams/use-case-diagram.puml` | Done — UML notation, PlantUML source with rendered SVG |
-| Functional Requirements | `PROPOSAL.md` → `FUNCTIONAL-REQUIREMENTS.md` | Done — 50, traced to use cases |
+| Functional Requirements | `PROPOSAL.md` → `FUNCTIONAL-REQUIREMENTS.md` | Done — 44, traced to use cases |
 | Non-functional Requirements | `PROPOSAL.md` → `NON-FUNCTIONAL-REQUIREMENTS.md` | Done — 17, grouped by quality attribute |
-| ADRs (≥3) | `../adr/` | Done — 4 recorded (ADR-001…004), summarised in `PROPOSAL.md` |
+| ADRs (≥3) | `../adr/` | Done — 6 recorded (ADR-001…006; ADR-005 *Proposed*), indexed from `PROPOSAL.md` |

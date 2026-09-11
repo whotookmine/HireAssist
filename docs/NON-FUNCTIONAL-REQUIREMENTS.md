@@ -69,8 +69,9 @@ system must guarantee it cannot lose one.
 | NFR-11 | The system shall encrypt candidate personal data at rest and shall transmit all data over TLS 1.2 or higher. | Configuration review |
 | NFR-12 | The system shall record an audit log of every access to candidate personal data, and shall retain that log for at least one year. | Inspection |
 
-Access control and workspace isolation are not repeated here: they are stated as functional
-behaviour in FR-0.3, FR-0.4 and FR-0.6.
+Access control is not repeated here: it is stated as functional behaviour in FR-0.4 and FR-0.6.
+Isolation *between customer companies* is not a requirement on the code at all — each company runs
+its own deployment ([ADR-006](adr/ADR-006-single-tenant-deployment.md)).
 
 ## Privacy & Regulatory Compliance
 

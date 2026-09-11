@@ -24,26 +24,26 @@ It is a *summary* log, not a diff — Git already has the diffs. Record the deci
 reason for it, in prose a teammate can read months later. The test: if someone could
 reasonably ask *"why did we do that?"*, the answer belongs in the changelog.
 
-- **One entry per working session**, newest first, dated `YYYY-MM-DD`. Start a new entry at
-  the top of the file — never edit an entry that is already committed, even one from today.
-  An entry records what a session decided; rewriting it destroys when and why things changed.
-  Two entries on the same date are fine — give them distinguishing titles.
-- The `2026-09-10 — Initial proposal and repository setup` entry is the **frozen baseline**
-  covering everything up to the first commit. Leave it alone.
-- Write **why**, not just what. "Deferred re-matching" is useless; "deferred re-matching
-  because it cannot be demonstrated without a deep talent pool and raises purpose-limitation
-  questions UC-5 must answer first" is the point.
-- Record decisions that were *reversed* or *reconsidered* too. Knowing that something was
-  tried and rejected is worth as much as knowing what was chosen. If a later entry overturns
-  an earlier one, say so and name the entry it supersedes — do not go back and amend it.
-- Note what is still outstanding at the end of an entry.
+- **One entry per working session**, newest first, headed `YYYY-MM-DD HH:MM`. Start a new entry
+  at the top — never edit one that is already committed. An entry records what a session decided;
+  rewriting it destroys when and why things changed.
+- **Keep it short.** A line or two per change: what changed, and why in a clause. Aim for an entry
+  you can read in under a minute. If an explanation needs a paragraph, it belongs in the ADR or
+  the document, and the entry points there instead of repeating it — the reasoning has a home, and
+  duplicating it into the changelog means two versions that drift.
+- Write **why**, not just what. "Deferred re-matching" is useless; "deferred re-matching — cannot
+  be demonstrated without a deep talent pool" is the point. One clause is usually enough.
+- Record decisions that were *reversed* or *reconsidered* too, and name the entry a later one
+  overturns rather than amending the earlier entry.
+- End with what is still outstanding, in a line.
 
-A `PostToolUse` hook (`.claude/settings.json` → `.claude/hooks/changelog-reminder.py`) injects
-this reminder automatically whenever any file under `docs/` is actually modified. It detects
-the change by modification time rather than by reading the tool's arguments, so it catches an
-edit however it was made and stays silent when a file was only read. It is a safety net, not
-the rule — the obligation is this section, and the hook only fires inside a Claude Code session
-that has it loaded.
+A `PostToolUse` hook (`.claude/settings.json` → `.claude/hooks/changelog-reminder.sh`) injects
+this reminder automatically whenever any file under `docs/` is actually modified. It compares
+modification times against a marker rather than reading the tool's arguments, so it catches an
+edit however it was made, stays silent when a file was only read, and reports a change once. It
+is POSIX `sh` with no interpreter dependency, so it runs on any machine with a shell. It is a
+safety net, not the rule — the obligation is this section, and the hook only fires inside a
+Claude Code session that has it loaded.
 
 ---
 
@@ -81,6 +81,11 @@ every one, every time:
 8. The provenance table in `docs/CONTEXT.md`
 9. `CHANGELOG.md` — what changed and why
 
+**Requirement IDs** (`FR-<uc>.<n>`) are stable once written and never reused. A withdrawn
+requirement is **removed from `docs/FUNCTIONAL-REQUIREMENTS.md` entirely** — not struck through —
+leaving a gap in the sequence. That document states what the system does today; why something was
+withdrawn belongs in `CHANGELOG.md`, and in the ADR that caused it.
+
 Stale cross-references have been the single most common defect in this repo. After any
 renumbering, grep for every `UC-` and `D-` reference and verify each one still points at what
 it claims.
@@ -108,6 +113,10 @@ gets wrong — lives in that file.
   trade-off.
 - **Related requirements is not optional.** Map every decision to the use cases it serves and
   to `docs/course/REQUIREMENTS.md` — traceability is graded.
+- **An ADR must stand alone.** It will be read outside this repository, so it may not reference
+  project documents — no "see the proposal", no file paths. State the fact instead. Requirement
+  and use case ids are fine, but say what each means the first time it appears.
+- **Keep it to one or two pages.** A long ADR is not more rigorous, only less likely to be read.
 - Skip optional fields rather than padding them with "N/A". Filler hides the real content.
 - Write the ADR when the decision is made. Reconstructing the reasoning later does not work —
   the rejected alternatives are exactly what gets forgotten.
@@ -147,7 +156,7 @@ documentation we wrote.
 ## Terminology
 
 Use the glossary in `docs/CONTEXT.md`. The terms are deliberate and consistent across
-documents: *Workspace, Job Opening, Criterion, Candidate Profile, Screening Batch, Screening
+documents: *Job Opening, Criterion, Candidate Profile, Screening Batch, Screening
 Score, Justification, Decision, Interview Guide, Talent Pool, Stale Position, Retention Policy.*
 
 If a new domain term is needed, add it to the glossary rather than improvising a synonym.

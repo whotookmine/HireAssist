@@ -24,7 +24,7 @@ Assumptions currently stated in the proposal that we have not verified:
 - [ ] Model-provider rate limits may cap concurrency before worker count does (risk matrix item).
 - [ ] UC-6: how does an invited person set the password they sign in with (UC-0)? Nothing in the
       use cases or requirements covers it.
-- [ ] UC-6: may the last Admin of a workspace be removed or demoted? If so, the workspace can no
+- [ ] UC-6: may the last Admin be removed or demoted? If so, the installation can no
       longer be administered.
 
 Raised by the ADRs recorded on 2026-09-11, and load-bearing for them:
@@ -59,7 +59,7 @@ and the Service–Operations–Collaborators table are produced.
       how the verification pass works (FR-5.5, FR-5.11).
 - [ ] **Scheduler design** shared by UC-4 (staleness) and UC-5 (retention). Where the timer runs,
       how it behaves with more than one replica, and how a sweep that dies half-way resumes.
-- [ ] **Session and token mechanism for UC-0**, and how workspace identity travels on internal
+- [ ] **Session and token mechanism for UC-0**, and how the role travels on internal
       gRPC calls and broker messages. ADR-001 requires that it does, and says enforcement cannot
       live only at the gateway — but not how.
 - [ ] **Front-end framework** and the shape of the recruiter-facing web application. The course
@@ -95,7 +95,7 @@ Service–Operations–Collaborators table.
 
 | Term | Meaning |
 |---|---|
-| **Workspace** | One company's isolated tenant. All data access is scoped to it. |
+
 | **Guest** | A person who has not signed in. On signing in they act as a Recruiter or an Admin, so *Recruiter* and *Admin* always mean a signed-in user. |
 | **Job Opening** | An open role, holding weighted screening criteria and an expected time-to-fill. |
 | **Criterion** | One requirement of a job opening, flagged must-have or nice-to-have, with a weight. |
@@ -107,9 +107,9 @@ Service–Operations–Collaborators table.
 | **Justification** | The written evidence-based reason accompanying a score. Internal only. |
 | **Decision** | Shortlist or reject, recorded with its reason and with any human override of the AI score. |
 | **Interview Guide** | The generated question set for one candidate against one job opening. |
-| **Talent Pool** | All retained candidate profiles in a workspace, governed by consent and retention. |
+| **Talent Pool** | All retained candidate profiles, governed by the retention policy. |
 | **Stale Position** | An open position breaching its staleness rule (e.g. past expected time-to-fill). |
-| **Retention Policy** | Workspace setting: period, anchor date, and expiry action (delete or anonymise). |
+| **Retention Policy** | Period, anchor date (data collected, or last activity), and expiry action (delete or anonymise). |
 | **PDPA** | Thailand's Personal Data Protection Act. |
 
 ---
@@ -124,12 +124,12 @@ Kept only as a record of where the concept came from. The authoritative descript
 | AI Screen Resume | UC-2 |
 | Reason for rejection (not sent to candidate) | An output field of UC-2, not a use case |
 | Talent Pool Re-matching | **D-1 — deferred** (see *Deferred Use Cases* in the proposal) |
-| PDPA Assistant | UC-5 (retention); consent gating remains an NFR |
+| PDPA Assistant | UC-5 (retention). Consent is obtained before a resume reaches HireAssist and is not stored |
 | First draft email for interview meeting | Was an «extend» on UC-2; removed — no use case or requirement ever described it |
 | Notification for position open too long | Folded into UC-4 |
 | *(new)* Job creation from natural language | UC-1 |
 | *(new)* Candidate-specific interview questions | UC-3 |
-| *(new)* Authentication and workspace access, first drafted as one use case | Split in two after review: UC-0 (Guest signs in) and UC-6 (Admin manages access) |
+| *(new)* Authentication and access management, first drafted as one use case | Split in two after review: UC-0 (Guest signs in) and UC-6 (Admin manages members and roles) |
 
 ---
 

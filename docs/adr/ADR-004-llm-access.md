@@ -3,12 +3,12 @@
 **Date:** 2026-09-11
 **Deciders:** Patiphon Puntusin, Thanabul Parodom, Thanwarat Korcharoenkiat, Rerngrit Jangsri
 
-> In the context of every AI behaviour in UC-1, UC-2 and UC-3, facing resumes that are personal
-> data under PDPA and a team with no GPU capacity, we decided to route all model calls through a
-> single internal AI Service speaking to a managed API whose terms exclude training on our
-> inputs, to achieve a disclosure we can lawfully justify and one place to control cost, prompts
-> and failure, accepting a dependency we cannot repair ourselves and a period during which
-> screening produces no scores at all.
+> In the context of every AI behaviour in the product, facing resumes that are personal data and
+> a team with no GPU capacity, we decided to route all model calls through a single internal AI
+> Service speaking to a managed API whose terms exclude training on our inputs, to achieve a
+> disclosure we can lawfully justify and one place to control cost, prompts and failure, accepting
+> a dependency we cannot repair ourselves and periods during which screening produces no scores at
+> all.
 
 ---
 
@@ -16,35 +16,30 @@
 
 ### Issue
 
-Three use cases need a language model. UC-1 turns a paragraph of plain Thai or English into
-weighted criteria. UC-2 scores a candidate profile against those criteria and writes the
-justification that makes the score usable. UC-3 generates interview questions from the
-intersection of a resume and a job opening. The model is not a feature of HireAssist; it is the
-capability the product is sold on.
+Three behaviours need a language model: turning a paragraph of plain Thai or English into
+weighted criteria, scoring a profile against those criteria with a justification, and generating
+interview questions from the intersection of a resume and a job opening. The model is not a
+feature of HireAssist; it is the capability the product is sold on.
 
-**What we send it is personal data.** A resume carries a name, contact details, employment
-history and often more. Under Thailand's PDPA, sending it to a third party is a disclosure that
-needs a lawful basis and terms that bound what the recipient may do with it. One clause decides
-the whole question: if the provider may train on submitted data, then every resume becomes part
-of a model weight we cannot reach into and delete. UC-5's entire promise — that a candidate's
-data is erased on a schedule and the erasure can be proved — would be false the moment the first
-batch was screened. A provider that trains on our inputs is not a cheaper option; it is an
-incompatible one.
+**What we send it is personal data.** A resume carries a name, contact details and employment
+history. Sending it to a third party is a disclosure needing a lawful basis and terms bounding
+what the recipient may do with it. One clause decides everything: if the provider may train on
+submitted data, every resume becomes part of a model weight we cannot reach into and delete, and
+our promise that a candidate's data is erased on a schedule would be false from the first batch.
+A provider that trains on our inputs is not a cheaper option; it is an incompatible one.
 
-**We have no GPU and no budget for one.** Nobody on the team has hardware that runs a
-competitive model, and the customers in the proposal are explicitly price-sensitive, so per-token
-cost is an architectural concern rather than an operations detail: it scales linearly with
-applicant volume, which is the very thing our customers have too much of.
+**We have no GPU and no budget for one.** Nobody has hardware that runs a competitive model, and
+our customers are price-sensitive, so per-token cost is architectural rather than operational: it
+scales linearly with applicant volume, which is the very thing our customers have too much of.
 
-**Resumes arrive in Thai and English, often mixed within one document.** Whatever we choose has
-to read both competently, because a model that handles Thai poorly produces exactly the failure
-the product exists to prevent — a good candidate rejected for their vocabulary.
+**Resumes arrive in Thai and English, often mixed in one document.** A model that handles Thai
+poorly produces exactly the failure the product exists to prevent — a good candidate rejected for
+their vocabulary.
 
-**The model is the least reliable dependency in the system,** and NFR-10 commits us to never
-losing an accepted resume regardless of what it does, while NFR-02 bounds how long any one
-scoring attempt may wait for it. Rate limits, latency spikes and outages are certain, not
-hypothetical — and the provider's rate limit, not our worker count, may turn out to be the ceiling
-on the throughput NFR-07 measures.
+**The model is the least reliable dependency in the system,** yet we have committed to never
+losing an accepted resume whatever it does, and to a bound on how long one scoring attempt may
+wait. Rate limits, latency spikes and outages are certain. The provider's rate limit, not our
+worker count, may also turn out to be the ceiling on the throughput we must demonstrate.
 
 ### Decision
 
@@ -80,7 +75,7 @@ promised.
   that no caller can forget to.
 - **Cache by content.** Results are keyed on the profile version and the criteria version, so
   re-running a batch or re-opening a guide does not re-pay for an identical call.
-- **Budget per workspace and per batch.** A runaway batch hits a ceiling and reports it rather
+- **Budget per deployment and per batch.** A runaway batch hits a ceiling and reports it rather
   than producing an invoice.
 - **Meter every call** — model, version, token counts, latency, outcome. The metering log
   contains no personal data.
@@ -90,7 +85,7 @@ underneath a stable name; without the version pinned and stored, a score from Ma
 explained in September. NFR-15 requires the per-criterion evidence to be persisted with the
 score; the version is what makes that evidence reproducible rather than merely retained.
 
-**6. The provider is documented as a data processor.** The workspace's privacy notice and the
+**6. The provider is documented as a data processor.** The customer's privacy notice and the
 consent text must disclose that resumes are processed by a named overseas processor. This is a
 product obligation created by this decision, not a footnote to it.
 
@@ -123,10 +118,9 @@ AI/LLM · Security · Cost
 
 ### Constraints
 
-- PDPA: personal data may be disclosed to a processor only under terms that bound its use, and
-  must remain erasable on request or on expiry (UC-5).
-- Customers are price-sensitive (`docs/PROPOSAL.md`, Target Customers), so per-candidate cost is
-  bounded by what an SME will pay.
+- Personal data may be disclosed to a processor only under terms bounding its use, and must
+  remain erasable on request or on expiry.
+- Customers are price-sensitive, so per-candidate cost is bounded by what an SME will pay.
 - [ADR-001](ADR-001-service-decomposition.md) established the AI Service as a separate,
   gRPC-only service not exposed through the gateway.
 - [ADR-002](ADR-002-async-screening-pipeline.md) fixed how failures of this dependency are
@@ -156,15 +150,15 @@ model server, which is not obviously more reliable than a provider with an SLA. 
 re-examining if the project ever has hardware; the AI Service boundary is what would make that
 re-examination cheap.
 
-**The hybrid (2) was reconsidered specifically because NFR-10 commits us to never losing
-accepted work, and rejected anyway.** A fallback model makes a candidate's score depend on which
+**The hybrid (2) was reconsidered because of the promise never to lose accepted work, and
+rejected anyway.** A fallback model makes a candidate's score depend on which
 provider happened to be healthy when their resume was processed. Two candidates in the same batch
 could be ranked against each other on scores produced by different models — indefensible in a
 system whose entire proposition is a comparable, justified score, and unanswerable when a
 recruiter asks why one was rated lower. It also doubles the prompt-tuning and evaluation surface
-for a four-person team. NFR-10 asks for exactly what we can honestly promise and no more: *every
-accepted resume reaches a terminal state* — scored, or flagged for manual review — not *the AI is
-always available*. The queue holds the work; the recruiter is told; nothing is lost or silently
+for a four-person team. The promise we can honestly make is narrower: *every accepted resume
+reaches a terminal state* — scored, or flagged for manual review — not *the AI is always
+available*. The queue holds the work; the recruiter is told; nothing is lost or silently
 guessed.
 
 **Multi-provider failover (3)** has the same comparability problem in a milder form, plus two
@@ -182,7 +176,8 @@ prompts in three places to drift apart, and no single point at which spending ca
 provider swapped. Everything this record decides in items 2–5 would have to be implemented three
 times and would be inconsistent within a month.
 
-**What decided it, in order:** the training clause is non-negotiable because UC-5 depends on it;
+**What decided it, in order:** the training clause is non-negotiable because the erasure promise
+depends on it;
 hardware we do not have rules out self-hosting; Thai-language quality rules out the small models
 we could otherwise run; and comparability of scores rules out mixing models. What remains is a
 single managed provider — so the design work goes into making that dependency safe to have:
@@ -196,11 +191,11 @@ and let the queue absorb its failures.
 - One credential, one prompt set, one cost centre, one place a provider swap happens.
 - A lawful basis we can actually put in a privacy notice: named processor, no training,
   documented retention.
-- UC-5's erasure promise stays true, because nothing we send is absorbed into a model.
+- The erasure promise stays true, because nothing we send is absorbed into a model.
 - Every score carries the model version that produced it, so a justification can be reconstructed
   months later — the auditability requirement, satisfied structurally.
-- D-1 re-matching, if reinstated, reuses `ScoreProfile` unchanged, and inherits the same budget
-  and caching controls that keep it from multiplying cost across the archive.
+- Any future re-matching over the candidate archive reuses `ScoreProfile` unchanged and inherits
+  the same budget and caching controls that keep it from multiplying cost.
 
 **What it costs us**
 
@@ -218,20 +213,18 @@ and let the queue absorb its failures.
 - **We cannot fix a quality regression.** When the provider updates a model, scores can shift
   under us with no code change on our side. Pinning the version limits it, but pinned versions
   are eventually retired, and a migration means re-validating every prompt.
-- **Budget ceilings create a new failure mode**: a batch that stops mid-way because a workspace
+- **Budget ceilings create a new failure mode**: a batch that stops mid-way because a deployment
   exhausted its allowance. That state has to be visible and resumable, or it looks identical to a
   bug.
-- **The AI Service is a bottleneck for every use case.** UC-1's interactive extraction queues
-  behind UC-2's batch scoring unless the service separates them — interactive and batch traffic
-  need different rate-limit budgets, which is more machinery in the one service that already
-  holds the credential. And the provider's rate limit, not our worker count, may become the
-  ceiling on NFR-07: the scalability demonstration can be capped by a number we do not control,
-  which is the risk-matrix item `docs/CONTEXT.md` already records and the reason a deterministic
-  pre-filter remains a candidate decision.
+- **The AI Service is a bottleneck for everything.** Interactive criteria extraction queues
+  behind batch scoring unless the service separates them: the two need different rate-limit
+  budgets, which is more machinery in the one service already holding the credential. And the
+  provider's rate limit, not our worker count, may become the ceiling on the scalability
+  demonstration — a number we do not control, and the reason a deterministic pre-filter remains a
+  candidate decision.
 - **Caching stores derived personal data.** A cache keyed on profile content is another place a
-  candidate's data lives, so it must respect retention and be purged as part of the erasure
-  FR-5.5 describes, within the 30 days NFR-13 allows — otherwise the cost optimisation quietly
-  reopens the compliance hole.
+  candidate's data lives, so it must respect retention and be purged with everything else, or the
+  cost optimisation quietly reopens the compliance hole.
 
 ---
 
@@ -249,31 +242,28 @@ and let the queue absorb its failures.
 
 ### Related requirements
 
-- **Use cases:** UC-1 (criteria extraction), UC-2 (scoring, justification, and alternate flow 4a
-  when the scorer is unavailable), UC-3 (interview guide generation), UC-5 (the erasure promise
-  that the no-training term protects). D-1 depends on `ScoreProfile` being reusable over the
-  talent pool.
-- **Functional requirements** (`docs/FUNCTIONAL-REQUIREMENTS.md`): FR-1.2 (criteria derived from
-  free text); FR-2.5 (score, must-have check and justification for every resume); FR-2.7 (retry,
-  then manual review, when the model cannot answer); FR-3.1 to FR-3.4 (interview guide generation
-  and regeneration with a stated emphasis); FR-5.5 (erasure reaches the cache too).
-- **Non-functional requirements** (`docs/NON-FUNCTIONAL-REQUIREMENTS.md`): NFR-02 and NFR-05
-  (scoring and guide-generation latency bounds, which the provider — not our code — largely
-  determines); NFR-07 (the provider's rate limit as a possible ceiling on the demonstrated
-  attribute); NFR-10 (no accepted resume lost, whatever the provider does); NFR-13 (erasure within
-  30 days, including cached derived data); NFR-14 (protected attributes stripped in the AI Service
-  before any prompt); NFR-15 (per-criterion evidence, reproducible because the model version is
-  stored with it); NFR-16 (Thai and English); NFR-17 (model and prompt change within this one
-  service).
-- **Course requirements** (`docs/course/REQUIREMENTS.md`): the gRPC service; the demonstrated
-  quality attribute — Scalability, NFR-07 — for which this record names the ceiling we do not
-  control; and the risk matrix, to which this contributes provider outage, rate-limit ceiling,
-  cost escalation, cross-border transfer, and model-drift risks.
+- **Criteria extraction**, **scoring with a justification** and its retry path when the model
+  cannot answer, **interview guide generation**, and the **erasure promise** the no-training term
+  protects. Any future re-matching depends on `ScoreProfile` being reusable.
+- **FR-1.2** — criteria derived from free text. **FR-2.5** — score, must-have check and
+  justification for every resume. **FR-2.7** — retry, then manual review. **FR-3.1 to FR-3.4** —
+  guide generation and regeneration with a stated emphasis. **FR-5.5** — erasure reaches the cache
+  too.
+- **NFR-02, NFR-05** — scoring and guide latency bounds, largely set by the provider rather than
+  our code. **NFR-07** — the provider's rate limit as a possible ceiling on the demonstrated
+  attribute. **NFR-10** — no accepted resume lost, whatever the provider does. **NFR-13** — erasure
+  within 30 days, including cached derived data. **NFR-14** — protected attributes stripped inside
+  this service before any prompt is built. **NFR-15** — per-criterion evidence, reproducible
+  because the model version is stored with it. **NFR-16** — Thai and English. **NFR-17** — model
+  and prompt change within this one service.
+- Required of us: the gRPC service; the demonstrated quality attribute, for which this record
+  names a ceiling we do not control; and the risk matrix, to which it contributes provider outage,
+  rate-limit ceiling, cost escalation, cross-border transfer and model drift.
 
 ### Related artifacts
 
-`docs/PROPOSAL.md` — UC-1, UC-2, UC-3 and the Non-functional Requirements section. The privacy
-notice and consent text, which do not exist yet, are a deliverable this decision creates.
+The privacy notice and consent text, which do not exist yet, are a deliverable this decision
+creates.
 
 ### Related principles
 
@@ -288,9 +278,9 @@ notice and consent text, which do not exist yet, are a deliverable this decision
 
 ## Notes
 
-The tension in this record was raised explicitly and is worth preserving. NFR-10 promises that no
-accepted resume is ever lost, and this record then chooses a design with a single point of AI
-failure and no fallback. That is deliberate: NFR-10 is a claim about the *system*, not the model.
+The tension here was raised explicitly and is worth preserving. We promise that no accepted
+resume is ever lost, then choose a design with a single point of AI failure and no fallback. That
+is deliberate: the promise is about the *system*, not the model.
 Work submitted is never lost, no failure of the model takes down sign-in, the dashboard, or an
 in-flight batch, and every resume the model could not judge ends in an honest state a human can
 act on. A fallback model would have made a different claim — that a score is always produced —
