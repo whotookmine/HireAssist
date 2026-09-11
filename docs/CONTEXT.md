@@ -48,6 +48,13 @@ Raised by the ADRs recorded on 2026-09-11, and load-bearing for them:
 Each of these should become an ADR, or be folded into one, before the architecture diagram
 and the Service–Operations–Collaborators table are produced.
 
+- [ ] **Who owns the candidate record, and is "talent pool" still a useful term?** FR-2.11 says
+      candidates are added to the talent pool, but the pool is a view — candidates that have not
+      expired — not a collection anyone maintains, and the term earned its place when D-1
+      re-matching was in scope. Separately, the record FR-2.11 actually creates (candidate
+      identity plus collection date, the anchor retention runs on) is named in no service.
+      Resume Processing already owns the parsed profile, so splitting identity from profile would
+      create a dual write across services. Parked 2026-09-12.
 - [ ] **Resume ingestion channel.** Batch upload is confirmed in UC-2. Is an automated channel
       (IMAP/webhook) in scope, or a stated future extension? *(Currently unresolved — the
       proposal's positioning says "plugs into existing channels" while UC-2 is upload-only.)*

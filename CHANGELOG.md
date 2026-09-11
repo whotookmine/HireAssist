@@ -15,6 +15,14 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 00:41 — Candidate record ownership parked as an open question
+
+- FR-2.11 adds candidates to a "talent pool" that no service owns, and the pool is a view rather
+  than a collection now that re-matching is deferred. Recorded in `CONTEXT.md` rather than acted
+  on — the requirement works as written; only the ownership is unstated.
+
+---
+
 ## 2026-09-12 00:16 — Changelog hook rewritten in POSIX sh
 
 - The hook was Python; `python3` is not guaranteed on a teammate's machine, a shell is. Rewritten
