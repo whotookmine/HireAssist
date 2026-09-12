@@ -26,10 +26,13 @@ boxes and arrows in the file directly and commit it — there is no separate sou
 - **A plain line between a service and a data store means the service owns that store.** No
   service reads another service's store; it calls the owning service's operation instead.
 - **Arrows are not labelled with operations** — the table lists them, and the traces below walk
-  through each use case. **Every call in version 1 is REST**, as the course asks for a first
-  version. The protocols the ADRs decided — gRPC into the AI Service (ADR-001) and RabbitMQ
-  between Hiring and Resume Processing (ADR-002) — will replace the corresponding arrows in a
-  later version without changing which service calls which.
+  through each use case.
+- **Every collaboration is REST over HTTP/JSON** — one protocol on every boundary (ADR-001).
+  Screening is still asynchronous behind that: Hiring hands each resume over with a call that is
+  acknowledged as soon as the work is durably recorded, and Resume Processing calls back with the
+  result; the queue is a work table inside Resume Processing (ADR-002). A message broker and gRPC
+  are deferred, not chosen — they will be revisited against the course's technology requirements
+  in a later checkpoint.
 - **External systems** sit on the right, outside the deployment boundary. Each is reached through
   an adapter inside the service that calls it, so no domain logic depends on a provider's API
   directly.
@@ -47,18 +50,20 @@ boxes and arrows in the file directly and commit it — there is no separate sou
 
 Signing in (UC-0) is not a business use case. A Guest signs in through the gateway, which asks the
 Identity Service to validate the session on every later request. The Identity Service is drawn
-because the table lists it, but it is connected only to the gateway — no other service calls it.
+because the table lists it, but only the gateway calls it and it calls nothing. A request that
+exceeds the caller's role is rejected at the gateway, which records the attempt by calling
+Compliance & Insights (FR-0.4 — reject and record the rejected attempt).
 
 ## Services and what each owns
 
 | Service | Business capability | Use cases | Owns (private store) |
 |---|---|---|---|
-| **API Gateway** | Single entry point: TLS, session validation, rate limiting, routing | — | nothing |
-| **Identity Service** | Who may sign in and with which role | UC-0, UC-6 | PostgreSQL — users, roles, sessions |
-| **Hiring Service** | The hiring record: openings and criteria, screening batches and their results, shortlist decisions, interview guides | UC-1, UC-2, UC-3 | PostgreSQL — job openings, criteria, batches, screening results, decisions; MongoDB — interview guides |
-| **Resume Processing Service** | Turning one resume file into a scored candidate profile | UC-2 (per-resume work) | MongoDB — candidate profiles, parsed text, scoring evidence and justifications |
-| **AI Service** | Every call to the language model, behind domain operations | UC-1, UC-2, UC-3 | nothing — prompts and the model credential only |
-| **Compliance & Insights Service** | Retention enforcement and the pipeline dashboard | UC-4, UC-5 | PostgreSQL — retention policy, pipeline metrics, erasure audit log |
+| **API Gateway** | Single entry point: TLS, session validation, role check, rate limiting, routing | — | nothing |
+| **Identity Service** | Who may sign in and with which role | UC-0, UC-6 | PostgreSQL — accounts, roles, sessions |
+| **Hiring Service** | The hiring record: openings and criteria, screening batches and entry status, scores and overrides, shortlist decisions, interview guides | UC-1, UC-2, UC-3 | PostgreSQL — job openings, criteria, batches, scores, decisions; MongoDB — interview guides |
+| **Resume Processing Service** | Turning one resume file into a scored candidate profile, and holding the candidate register | UC-2 (per-resume work) | MongoDB — candidate identity and collection date, candidate profiles, parsed text, scoring output and justifications; PostgreSQL — the screening work table |
+| **AI Service** | Every call to the language model, behind three domain operations | UC-1, UC-2, UC-3 | nothing — prompts and the model credential only |
+| **Compliance & Insights Service** | Retention enforcement, the pipeline dashboard, and the audit logs | UC-4, UC-5 | PostgreSQL — retention policy, pipeline metrics, erasure and access audit logs |
 
 Resume files themselves live in object storage, written by Hiring when a batch is uploaded and
 read by Resume Processing when it works; neither database holds them.
@@ -66,46 +71,47 @@ read by Resume Processing when it works; neither database holds them.
 ## The three business use cases, traced
 
 The check the course asks for: *Actor → operation → responsible service → collaborators → where
-the data lands.*
+the data lands.* Operation names are the table's.
 
 **UC-1 — Create a job opening.** Recruiter → `createJobOpening()` on **Hiring**. Hiring →
 **AI Service** `deriveCriteriaFromDescription()` → LLM Provider. Hiring returns the proposed
 criteria; the Recruiter revises them (`reviseScreeningCriteria()`) and confirms. Hiring stores the
-opening and its criteria in its PostgreSQL; **Compliance & Insights** later reads the
-*JobOpeningCreated* pipeline event through Hiring's `getPipelineEvents()` for the dashboard.
+opening and its criteria in its PostgreSQL and calls **Compliance & Insights**
+`recordPipelineEvent()`, from which the dashboard's view of open positions is maintained.
 
 **UC-2 — Batch-screen resumes.** Recruiter → `submitScreeningBatch()` on **Hiring**. Hiring stores
 each PDF in **Object Storage** (`storeResumeFile()`), creates the batch with one pending entry per
-resume, calls **Resume Processing** `screenResume()` once per resume, and returns the batch id.
-For each resume, Resume Processing fetches the file (`fetchResumeFile()`), extracts the text,
-calls **AI Service** `extractProfileFields()` and `scoreAgainstCriteria()` — the criteria come from
-Hiring's `getScreeningCriteria()` — stores the profile and the full scoring evidence in its
-MongoDB, and calls Hiring `recordScreeningResult()`. Hiring records the score and justification
-against the batch entry in its PostgreSQL and streams it to the ranked list
-(`getRankedResults()`). When every entry is terminal, Hiring sends the batch-finished email
-through the **Email Provider**. The Recruiter overrides scores (`overrideScore()`) and shortlists
-(`recordDecision()`), all in Hiring.
+resume, and hands each resume to **Resume Processing** with `submitResumeForScreening()` — the
+call carries a snapshot of the criteria and returns as soon as the work row is durably written —
+then answers the Recruiter with the batch id. Resume Processing workers claim rows from their own
+work table: fetch the file (`fetchResumeFile()`), extract the text and the profile in-process,
+call **AI Service** `scoreAgainstCriteria()` → LLM Provider, store the profile and the scoring
+output with its justification in their MongoDB, and call **Hiring** back with
+`reportScreeningResult()`. Hiring records the score and must-have check against the batch entry in
+its PostgreSQL and streams it to the ranked list (`getRankedResults()`); the written justification
+stays in Resume Processing and is read with `getCandidateProfile()` when a candidate is opened.
+When every entry is terminal, Hiring sends the batch-finished email through the **Email Provider**
+(FR-2.12). The Recruiter overrides scores (`overrideScore()`) and shortlists
+(`shortlistCandidate()`), all in Hiring.
 
 **UC-3 — Generate interview questions.** Recruiter → `generateInterviewGuide()` on **Hiring** for a
 shortlisted candidate. Hiring → **Resume Processing** `getCandidateProfile()` for the profile, then
-→ **AI Service** `generateInterviewQuestions()` → LLM Provider. Hiring stores the guide in
-its MongoDB; the Recruiter revises it (`reviseGuide()`) and later records notes against it
+→ **AI Service** `generateInterviewQuestions()` → LLM Provider. Hiring stores the guide in its
+document store; the Recruiter revises it (`reviseGuide()`) and later records notes against it
 (`recordInterviewNote()`).
 
 **UC-4 and UC-5** follow the same pattern from the other side: the **System Scheduler** calls
-**Compliance & Insights** `evaluateStaleness()` and `evaluateRetention()`; the dashboard is served
-from counters Compliance maintains from Hiring's `getPipelineEvents()` and Identity's
-`listAuthorisationRejections()`; erasure is
-orchestrated by Compliance calling `eraseHiringData()` on Hiring and `eraseCandidateProfile()` on
-Resume Processing, and the audit entry is written in Compliance's own PostgreSQL.
+**Compliance & Insights** `evaluateStaleness()` and `evaluateRetention()`; the dashboard is a
+projection maintained from the `recordPipelineEvent()` calls Hiring makes; erasure is orchestrated
+by Compliance calling `eraseHiringData()` on Hiring and `eraseCandidateProfile()` on Resume
+Processing (FR-5.3), with the audit entry written in Compliance's own PostgreSQL (FR-5.5).
 
-## Why version 1 is REST-only
+## Why one protocol
 
-The course asks that a first version use REST throughout and leave message brokers for a later
-checkpoint. Version 1 does that: every arrow is a REST call, including the per-resume hand-off
-from Hiring to Resume Processing (`screenResume()` / `recordScreeningResult()`) and the way
-Compliance & Insights learns about pipeline events (`getPipelineEvents()`). This is a presentation
-choice for the first version, not a reversal of the decisions: ADR-001 chose gRPC for the AI
-Service boundary and ADR-002 chose RabbitMQ, with one message per resume, for screening. When
-those are drawn in, the Hiring ↔ Resume Processing arrows become messages through a broker and the
-AI Service arrows become gRPC; no service gains or loses a responsibility.
+ADR-001 puts REST on every boundary — one wire format for four students to learn, readable in a
+browser's network tab, debuggable without a client toolchain. The two boundaries that would have
+argued for something else are served by REST anyway: the AI Service contract is held stable by an
+OpenAPI document rather than a generated stub, and the long-running hand-off from Hiring to Resume
+Processing is an acknowledged call plus a callback, with the retry, backoff and terminal-failure
+behaviour living in Resume Processing's work table (ADR-002). Nothing about which service calls
+which would change if a broker or gRPC were introduced later; only the arrows' wire format would.

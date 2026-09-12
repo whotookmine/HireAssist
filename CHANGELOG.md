@@ -15,6 +15,24 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 17:37 — Diagram and architecture page reconciled with the REST-only ADRs and the merged table
+
+- Diagram: the Compliance → Identity arrow is gone — Identity has no collaborators; a rejected
+  request is recorded by the gateway calling Compliance `recordAuthorisationRejected()` (FR-0.4).
+  Hiring → Compliance added: pipeline events are pushed with `recordPipelineEvent()`, not pulled.
+- Page: operation names now the table's (`submitResumeForScreening()` with the criteria snapshot,
+  `reportScreeningResult()` callback, `shortlistCandidate()`); profile extraction is in-process and
+  the AI Service has three operations; the justification stays in Resume Processing and is read
+  with `getCandidateProfile()`; Resume Processing owns the candidate register and its work table.
+- Page no longer says gRPC and RabbitMQ "come in a later version" as decisions — ADR-001 and
+  ADR-002 were revised to REST on every boundary and a work-table queue (02:20 entry); the broker
+  and gRPC are deferred, to be revisited against the course's technology requirements.
+
+**Outstanding:** the four open decisions the table lists (erasure orchestration, candidate
+register placement, pushed pipeline events, Hiring's document store) still need ADRs.
+
+---
+
 ## 2026-09-12 12:59 — Diagram: no arrow crosses a box
 
 - Hiring's two adapters stacked on its right edge (they sat side by side, and one adapter's arrow ran through the other); the Hiring → AI Service arrow now leaves from the top corner. Cosmetic.
