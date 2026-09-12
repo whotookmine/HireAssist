@@ -61,9 +61,9 @@
   <text x="60" y="348" class="lbl">Admin</text>
   <use href="#browser" x="140" y="300"/>
 
-  <use href="#person" x="60" y="540"/>
-  <text x="60" y="588" class="lbl">System Scheduler</text>
-  <use href="#clock" x="140" y="540"/>
+  <use href="#person" x="60" y="560"/>
+  <text x="60" y="608" class="lbl">System Scheduler</text>
+  <use href="#clock" x="140" y="560"/>
 
   <!-- ── Web UI, API Gateway, Identity ─────────────────────────────────────── -->
   <polygon class="hexEdge" points="195,250 232,200 308,200 345,250 308,300 232,300"/>
@@ -163,7 +163,7 @@
   <line class="call" x1="537" y1="252" x2="593" y2="530"/>
   <line class="call" x1="450" y1="302" x2="450" y2="383"/>
 
-  <line class="call" x1="169" y1="540" x2="633" y2="560"/>
+  <line class="call" x1="169" y1="560" x2="633" y2="560"/>
 
   <line class="call" x1="740" y1="282" x2="740" y2="348"/>
   <line class="call" x1="780" y1="348" x2="780" y2="282"/>

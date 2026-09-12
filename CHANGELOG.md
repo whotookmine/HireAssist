@@ -15,6 +15,12 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 12:57 — Diagram: System Scheduler aligned with Compliance & Insights
+
+- Actor moved level with the service it calls so the arrow is horizontal. Cosmetic.
+
+---
+
 ## 2026-09-12 12:52 — Architecture diagram laid out left to right
 
 - AI Service moved out of the service column into its own column between the domain services and
