@@ -15,6 +15,22 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 12:25 — Version 1 diagram shows REST for every call
+
+- The course's guidance for the first version is REST throughout and no message broker yet, so
+  the diagram now draws every call as REST: the per-resume hand-off is `screenResume()` /
+  `recordScreeningResult()`, Compliance reads pipeline events and rejected sign-ins through
+  `getPipelineEvents()` and `listAuthorisationRejections()`, and the AI Service exposes a REST API.
+  ADR-001 and ADR-002 stand — gRPC and RabbitMQ are drawn in a later version; `ARCHITECTURE.md`
+  says so.
+- The table in PR #4 marks these collaborations (gRPC) and (MQ); it should say (REST) and name the
+  same operations.
+- Detail cut to the FTGO example's level: service names, API tabs, stores, adapters, actors and
+  arrows — no operation labels, no legend. The operations live in the table and in the use case
+  traces on `ARCHITECTURE.md`.
+
+---
+
 ## 2026-09-12 11:55 — Architecture diagram redrawn by hand in the FTGO style
 
 - `docs/diagrams/architecture-diagram.svg` is now a hand-laid SVG shaped like the course's FTGO

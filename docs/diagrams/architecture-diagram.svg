@@ -1,9 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 990" width="1500" height="990" font-family="Helvetica, Arial, sans-serif" font-size="12">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 870" width="1300" height="870" font-family="Helvetica, Arial, sans-serif" font-size="13">
   <!--
     HireAssist — Architecture Diagram, version 1 (Microservice Design with Collaborations)
     Hand-authored SVG in the style of the FTGO example used in the course. Edit this file directly.
     Arrow convention (set by the course): A -> B means "A calls B". Responses are not drawn.
-    Must agree with docs/SERVICE-OPERATIONS-COLLABORATORS.md and ADR-001..006.
+    Version 1 draws every call as REST, as the course asks for a first version. The protocols the
+    ADRs decided (gRPC to the AI Service, RabbitMQ for screening) are drawn in a later version.
+    Operations are listed in docs/SERVICE-OPERATIONS-COLLABORATORS.md, not on the arrows.
   -->
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
@@ -17,22 +19,22 @@
       <line x1="0" y1="6" x2="11" y2="28" stroke="#222" stroke-width="4"/>
     </g>
     <g id="browser">
-      <circle cx="0" cy="0" r="28" fill="#F9D5E5" stroke="#333"/>
+      <circle cx="0" cy="0" r="27" fill="#F9D5E5" stroke="#333"/>
       <rect x="-14" y="-10" width="28" height="19" rx="2" fill="#FFF" stroke="#333"/>
       <line x1="-14" y1="-4" x2="14" y2="-4" stroke="#333"/>
       <line x1="-7" y1="14" x2="7" y2="14" stroke="#333" stroke-width="2"/>
     </g>
     <g id="clock">
-      <circle cx="0" cy="0" r="28" fill="#F9D5E5" stroke="#333"/>
+      <circle cx="0" cy="0" r="27" fill="#F9D5E5" stroke="#333"/>
       <circle cx="0" cy="0" r="14" fill="#FFF" stroke="#333"/>
       <line x1="0" y1="0" x2="0" y2="-9" stroke="#333" stroke-width="2"/>
       <line x1="0" y1="0" x2="7" y2="4" stroke="#333" stroke-width="2"/>
     </g>
     <g id="db">
-      <path d="M -22 0 v 34 a 22 7 0 0 0 44 0 v -34" fill="#D9C2E6" stroke="#333"/>
-      <ellipse cx="0" cy="0" rx="22" ry="7" fill="#E9DAF2" stroke="#333"/>
-      <ellipse cx="0" cy="11" rx="22" ry="7" fill="none" stroke="#333"/>
-      <ellipse cx="0" cy="22" rx="22" ry="7" fill="none" stroke="#333"/>
+      <path d="M -20 0 v 30 a 20 6 0 0 0 40 0 v -30" fill="#D9C2E6" stroke="#333"/>
+      <ellipse cx="0" cy="0" rx="20" ry="6" fill="#E9DAF2" stroke="#333"/>
+      <ellipse cx="0" cy="10" rx="20" ry="6" fill="none" stroke="#333"/>
+      <ellipse cx="0" cy="20" rx="20" ry="6" fill="none" stroke="#333"/>
     </g>
   </defs>
 
@@ -43,208 +45,140 @@
     .adapter { fill: #CFE6E0; stroke: #333; }
     .ext { fill: #E6F2E6; stroke: #333; stroke-width: 1.2; }
     .call { fill: none; stroke: #333; stroke-width: 1.4; marker-end: url(#arrow); }
-    .name { font-weight: bold; font-size: 13px; text-anchor: middle; }
-    .sub { font-size: 10.5px; text-anchor: middle; fill: #333; }
-    .tiny { font-size: 9.5px; fill: #333; }
-    .lbl { font-size: 12px; text-anchor: middle; }
+    .name { font-size: 14px; text-anchor: middle; }
+    .small { font-size: 11px; text-anchor: middle; fill: #333; }
+    .lbl { font-size: 13px; text-anchor: middle; }
   </style>
 
-  <!-- ── Title ─────────────────────────────────────────────────────────────── -->
-  <text x="40" y="34" font-size="17" font-weight="bold">HireAssist — Architecture Diagram, version 1</text>
-  <text x="40" y="54" font-size="11" fill="#444">One deployment serves one customer company (ADR-006). Arrows: A → B means A calls B; responses are not drawn.</text>
+  <text x="40" y="36" font-size="16" font-weight="bold">HireAssist — Architecture Diagram (version 1)</text>
 
-  <!-- ── Message broker (top) ──────────────────────────────────────────────── -->
-  <rect x="700" y="40" width="490" height="40" rx="10" fill="#FFF4D6" stroke="#333"/>
-  <text x="945" y="57" class="name">RabbitMQ — message broker</text>
-  <text x="945" y="72" class="sub">ResumeSubmitted · ResumeScored · pipeline events · AuthorisationRejected</text>
+  <!-- ── Actors ────────────────────────────────────────────────────────────── -->
+  <use href="#person" x="60" y="250"/>
+  <text x="60" y="298" class="lbl">Recruiter</text>
+  <use href="#browser" x="140" y="250"/>
 
-  <!-- ── Actors (left) ─────────────────────────────────────────────────────── -->
-  <use href="#person" x="50" y="270"/>
-  <text x="50" y="318" class="lbl">Recruiter</text>
-  <use href="#browser" x="135" y="270"/>
+  <use href="#person" x="60" y="360"/>
+  <text x="60" y="408" class="lbl">Admin</text>
+  <use href="#browser" x="140" y="360"/>
 
-  <use href="#person" x="50" y="380"/>
-  <text x="50" y="428" class="lbl">Admin</text>
-  <text x="50" y="442" class="tiny" text-anchor="middle">(specialises Recruiter)</text>
-  <use href="#browser" x="135" y="380"/>
-
-  <use href="#person" x="50" y="650"/>
-  <text x="50" y="698" class="lbl">System Scheduler</text>
-  <text x="50" y="712" class="tiny" text-anchor="middle">(timer — UC-4, UC-5)</text>
-  <use href="#clock" x="135" y="650"/>
+  <use href="#person" x="60" y="600"/>
+  <text x="60" y="648" class="lbl">System Scheduler</text>
+  <use href="#clock" x="140" y="600"/>
 
   <!-- ── Web UI and API Gateway ────────────────────────────────────────────── -->
-  <polygon class="hexEdge" points="195,320 232,270 308,270 345,320 308,370 232,370"/>
-  <text x="270" y="317" class="name">Recruiter Web UI</text>
-  <text x="270" y="333" class="sub">(browser)</text>
+  <polygon class="hexEdge" points="195,305 232,255 308,255 345,305 308,355 232,355"/>
+  <text x="270" y="301" class="name">Recruiter</text>
+  <text x="270" y="318" class="name">Web UI</text>
 
-  <polygon class="hexEdge" points="385,320 422,270 498,270 535,320 498,370 422,370"/>
-  <rect x="372" y="262" width="56" height="40" class="tab"/>
-  <text x="400" y="278" class="sub" font-weight="bold">REST</text>
-  <text x="400" y="292" class="sub" font-weight="bold">API</text>
-  <text x="462" y="314" class="name">API Gateway</text>
-  <text x="462" y="329" class="sub">TLS · session check</text>
-  <text x="462" y="342" class="sub">rate limit · routing</text>
+  <polygon class="hexEdge" points="385,305 422,255 498,255 535,305 498,355 422,355"/>
+  <rect x="372" y="247" width="56" height="40" class="tab"/>
+  <text x="400" y="263" class="small">REST</text>
+  <text x="400" y="277" class="small">API</text>
+  <text x="462" y="301" class="name">API</text>
+  <text x="462" y="318" class="name">Gateway</text>
 
-  <!-- ── Services (one column). Hexagon: cx=840, w=220, h=110 ─────────────── -->
-  <!-- AI Service, cy=170 -->
-  <polygon class="hex" points="730,170 785,115 895,115 950,170 895,225 785,225"/>
-  <rect x="690" y="178" width="60" height="44" class="tab"/>
-  <text x="720" y="196" class="sub" font-weight="bold">gRPC</text>
-  <text x="720" y="210" class="sub" font-weight="bold">API</text>
-  <text x="840" y="166" class="name">AI Service</text>
-  <text x="840" y="182" class="sub">prompts · model credential</text>
-  <text x="840" y="195" class="sub">no domain data · UC-1, UC-2, UC-3</text>
-  <rect x="960" y="118" width="96" height="44" class="adapter"/>
-  <text x="1008" y="137" class="sub">LLM</text>
-  <text x="1008" y="151" class="sub">Adapter</text>
+  <!-- ── Services. Hexagon: cx=760, w=210, h=100 ───────────────────────────── -->
+  <!-- AI Service, cy=150 -->
+  <polygon class="hex" points="655,150 707,100 813,100 865,150 813,200 707,200"/>
+  <rect x="615" y="100" width="60" height="40" class="tab"/>
+  <text x="645" y="116" class="small">REST</text>
+  <text x="645" y="130" class="small">API</text>
+  <text x="760" y="147" class="name">AI</text>
+  <text x="760" y="164" class="name">Service</text>
+  <rect x="872" y="105" width="92" height="42" class="adapter"/>
+  <text x="918" y="123" class="small">LLM</text>
+  <text x="918" y="137" class="small">Adapter</text>
 
-  <!-- Hiring Service, cy=330 -->
-  <polygon class="hex" points="730,330 785,275 895,275 950,330 895,385 785,385"/>
-  <rect x="690" y="278" width="60" height="44" class="tab"/>
-  <text x="720" y="296" class="sub" font-weight="bold">REST</text>
-  <text x="720" y="310" class="sub" font-weight="bold">API</text>
-  <text x="825" y="318" class="name">Hiring Service</text>
-  <text x="825" y="334" class="sub">job openings · criteria · batches</text>
-  <text x="825" y="347" class="sub">screening results · decisions · guides</text>
-  <text x="825" y="360" class="sub">UC-1, UC-2, UC-3</text>
-  <use href="#db" x="905" y="352"/>
-  <text x="934" y="398" class="tiny">PostgreSQL · MongoDB</text>
-  <rect x="960" y="278" width="96" height="44" class="adapter"/>
-  <text x="1008" y="297" class="sub">Object Storage</text>
-  <text x="1008" y="311" class="sub">Adapter</text>
-  <rect x="960" y="338" width="96" height="44" class="adapter"/>
-  <text x="1008" y="357" class="sub">Email</text>
-  <text x="1008" y="371" class="sub">Adapter</text>
+  <!-- Hiring Service, cy=300 -->
+  <polygon class="hex" points="655,300 707,250 813,250 865,300 813,350 707,350"/>
+  <rect x="615" y="250" width="60" height="40" class="tab"/>
+  <text x="645" y="266" class="small">REST</text>
+  <text x="645" y="280" class="small">API</text>
+  <text x="750" y="297" class="name">Hiring</text>
+  <text x="750" y="314" class="name">Service</text>
+  <use href="#db" x="830" y="318"/>
+  <rect x="872" y="252" width="92" height="42" class="adapter"/>
+  <text x="918" y="270" class="small">Object Storage</text>
+  <text x="918" y="284" class="small">Adapter</text>
+  <rect x="872" y="304" width="92" height="42" class="adapter"/>
+  <text x="918" y="322" class="small">Email</text>
+  <text x="918" y="336" class="small">Adapter</text>
 
-  <!-- Resume Processing Service, cy=490 -->
-  <polygon class="hex" points="730,490 785,435 895,435 950,490 895,545 785,545"/>
-  <rect x="690" y="438" width="60" height="44" class="tab"/>
-  <text x="720" y="456" class="sub" font-weight="bold">REST</text>
-  <text x="720" y="470" class="sub" font-weight="bold">API</text>
-  <text x="825" y="478" class="name">Resume Processing Service</text>
-  <text x="825" y="494" class="sub">candidate profiles · parsed text</text>
-  <text x="825" y="507" class="sub">scoring evidence · queue consumer</text>
-  <text x="825" y="520" class="sub">UC-2, per resume</text>
-  <use href="#db" x="905" y="512"/>
-  <text x="934" y="558" class="tiny">MongoDB</text>
-  <rect x="960" y="498" width="96" height="44" class="adapter"/>
-  <text x="1008" y="517" class="sub">Object Storage</text>
-  <text x="1008" y="531" class="sub">Adapter</text>
+  <!-- Resume Processing Service, cy=450 -->
+  <polygon class="hex" points="655,450 707,400 813,400 865,450 813,500 707,500"/>
+  <rect x="615" y="400" width="60" height="40" class="tab"/>
+  <text x="645" y="416" class="small">REST</text>
+  <text x="645" y="430" class="small">API</text>
+  <text x="750" y="440" class="name">Resume</text>
+  <text x="750" y="457" class="name">Processing</text>
+  <text x="750" y="474" class="name">Service</text>
+  <use href="#db" x="830" y="468"/>
+  <rect x="872" y="429" width="92" height="42" class="adapter"/>
+  <text x="918" y="447" class="small">Object Storage</text>
+  <text x="918" y="461" class="small">Adapter</text>
 
-  <!-- Compliance & Insights Service, cy=650 -->
-  <polygon class="hex" points="730,650 785,595 895,595 950,650 895,705 785,705"/>
-  <rect x="690" y="598" width="60" height="44" class="tab"/>
-  <text x="720" y="616" class="sub" font-weight="bold">REST</text>
-  <text x="720" y="630" class="sub" font-weight="bold">API</text>
-  <text x="825" y="638" class="name">Compliance &amp; Insights Service</text>
-  <text x="825" y="654" class="sub">retention policy · pipeline metrics</text>
-  <text x="825" y="667" class="sub">erasure audit log</text>
-  <text x="825" y="680" class="sub">UC-4, UC-5</text>
-  <use href="#db" x="905" y="672"/>
-  <text x="934" y="718" class="tiny">PostgreSQL</text>
-  <rect x="960" y="598" width="96" height="44" class="adapter"/>
-  <text x="1008" y="617" class="sub">Email</text>
-  <text x="1008" y="631" class="sub">Adapter</text>
+  <!-- Compliance & Insights Service, cy=600 -->
+  <polygon class="hex" points="655,600 707,550 813,550 865,600 813,650 707,650"/>
+  <rect x="615" y="550" width="60" height="40" class="tab"/>
+  <text x="645" y="566" class="small">REST</text>
+  <text x="645" y="580" class="small">API</text>
+  <text x="750" y="590" class="name">Compliance &amp;</text>
+  <text x="750" y="607" class="name">Insights</text>
+  <text x="750" y="624" class="name">Service</text>
+  <use href="#db" x="830" y="618"/>
+  <rect x="872" y="579" width="92" height="42" class="adapter"/>
+  <text x="918" y="597" class="small">Email</text>
+  <text x="918" y="611" class="small">Adapter</text>
 
-  <!-- Identity Service, cy=810 -->
-  <polygon class="hex" points="730,810 785,755 895,755 950,810 895,865 785,865"/>
-  <rect x="690" y="758" width="60" height="44" class="tab"/>
-  <text x="720" y="776" class="sub" font-weight="bold">REST</text>
-  <text x="720" y="790" class="sub" font-weight="bold">API</text>
-  <text x="825" y="800" class="name">Identity Service</text>
-  <text x="825" y="816" class="sub">users · roles · sessions</text>
-  <text x="825" y="829" class="sub">UC-0 sign in · UC-6 members</text>
-  <use href="#db" x="905" y="832"/>
-  <text x="934" y="878" class="tiny">PostgreSQL</text>
+  <!-- Identity Service, cy=750 -->
+  <polygon class="hex" points="655,750 707,700 813,700 865,750 813,800 707,800"/>
+  <rect x="615" y="700" width="60" height="40" class="tab"/>
+  <text x="645" y="716" class="small">REST</text>
+  <text x="645" y="730" class="small">API</text>
+  <text x="750" y="747" class="name">Identity</text>
+  <text x="750" y="764" class="name">Service</text>
+  <use href="#db" x="830" y="768"/>
 
-  <!-- ── External systems (right) ──────────────────────────────────────────── -->
-  <rect x="1230" y="100" width="240" height="780" rx="6" fill="none" stroke="#666" stroke-dasharray="7,5"/>
-  <text x="1350" y="122" class="sub" font-weight="bold" font-size="12">External systems</text>
+  <!-- ── External systems ──────────────────────────────────────────────────── -->
+  <rect x="1050" y="90" width="230" height="600" rx="6" fill="none" stroke="#666" stroke-dasharray="7,5"/>
+  <text x="1165" y="112" class="small" font-weight="bold">External systems</text>
 
-  <rect x="1250" y="130" width="200" height="80" rx="30" class="ext"/>
-  <text x="1350" y="164" class="name">LLM Provider</text>
-  <text x="1350" y="180" class="sub">Anthropic Claude API</text>
+  <rect x="1070" y="125" width="190" height="60" rx="26" class="ext"/>
+  <text x="1165" y="151" class="name">LLM Provider</text>
+  <text x="1165" y="167" class="small">Anthropic Claude API</text>
 
-  <rect x="1250" y="380" width="200" height="80" rx="30" class="ext"/>
-  <text x="1350" y="412" class="name">Object Storage</text>
-  <text x="1350" y="428" class="sub">S3-compatible (MinIO)</text>
-  <text x="1350" y="441" class="sub">resume files</text>
+  <rect x="1070" y="360" width="190" height="60" rx="26" class="ext"/>
+  <text x="1165" y="386" class="name">Object Storage</text>
+  <text x="1165" y="402" class="small">S3-compatible (MinIO)</text>
 
-  <rect x="1250" y="560" width="200" height="80" rx="30" class="ext"/>
-  <text x="1350" y="594" class="name">Email Provider</text>
-  <text x="1350" y="610" class="sub">SMTP / SES</text>
+  <rect x="1070" y="590" width="190" height="60" rx="26" class="ext"/>
+  <text x="1165" y="616" class="name">Email Provider</text>
+  <text x="1165" y="632" class="small">SMTP / SES</text>
 
-  <!-- ── Calls: actors → UI → gateway → services ───────────────────────────── -->
-  <line class="call" x1="165" y1="270" x2="234" y2="296"/>
-  <line class="call" x1="165" y1="380" x2="234" y2="344"/>
-  <line class="call" x1="347" y1="320" x2="383" y2="320"/>
-  <text x="365" y="311" class="tiny" text-anchor="middle">REST</text>
+  <!-- ── Calls (A → B means A calls B) ─────────────────────────────────────── -->
+  <line class="call" x1="169" y1="250" x2="234" y2="282"/>
+  <line class="call" x1="169" y1="360" x2="234" y2="328"/>
+  <line class="call" x1="347" y1="305" x2="383" y2="305"/>
 
-  <line class="call" x1="537" y1="318" x2="688" y2="300"/>
-  <text x="600" y="300" class="tiny">UC-1, UC-2, UC-3</text>
-  <line class="call" x1="537" y1="322" x2="688" y2="620"/>
-  <text x="650" y="636" class="tiny" text-anchor="end">UC-4, UC-5</text>
-  <line class="call" x1="535" y1="326" x2="688" y2="780"/>
-  <text x="650" y="796" class="tiny" text-anchor="end">UC-0, UC-6 · validateSession()</text>
+  <line class="call" x1="537" y1="303" x2="613" y2="272"/>
+  <line class="call" x1="537" y1="307" x2="613" y2="572"/>
+  <line class="call" x1="535" y1="311" x2="613" y2="722"/>
 
-  <line class="call" x1="165" y1="650" x2="728" y2="650"/>
-  <text x="300" y="643" class="tiny">evaluateStaleness() · evaluateRetention()</text>
+  <line class="call" x1="169" y1="600" x2="653" y2="600"/>
 
-  <!-- ── Calls between services ────────────────────────────────────────────── -->
-  <line class="call" x1="840" y1="273" x2="840" y2="227"/>
-  <text x="834" y="254" class="tiny" text-anchor="end">gRPC · deriveCriteriaFromDescription(), generateInterviewQuestions()</text>
+  <line class="call" x1="760" y1="248" x2="760" y2="202"/>
+  <line class="call" x1="740" y1="352" x2="740" y2="398"/>
+  <line class="call" x1="780" y1="398" x2="780" y2="352"/>
+  <polyline class="call" points="813,400 985,400 985,175 840,175"/>
+  <line class="call" x1="780" y1="548" x2="780" y2="502"/>
+  <polyline class="call" points="707,550 585,550 585,330 683,330"/>
+  <line class="call" x1="760" y1="652" x2="760" y2="698"/>
 
-  <line class="call" x1="815" y1="387" x2="815" y2="433"/>
-  <text x="809" y="414" class="tiny" text-anchor="end">getCandidateProfile()</text>
-  <line class="call" x1="865" y1="433" x2="865" y2="387"/>
-  <text x="871" y="414" class="tiny">getScreeningCriteria()</text>
+  <line class="call" x1="965" y1="126" x2="1068" y2="150"/>
+  <line class="call" x1="965" y1="273" x2="1068" y2="385"/>
+  <line class="call" x1="965" y1="325" x2="1068" y2="612"/>
+  <line class="call" x1="965" y1="450" x2="1068" y2="395"/>
+  <line class="call" x1="965" y1="600" x2="1068" y2="622"/>
 
-  <polyline class="call" points="895,435 1080,435 1080,200 924,200"/>
-  <text x="1074" y="318" class="tiny" text-anchor="middle" transform="rotate(-90 1074 318)">gRPC · extractProfileFields(), scoreAgainstCriteria()</text>
-
-  <line class="call" x1="865" y1="593" x2="865" y2="547"/>
-  <text x="871" y="574" class="tiny">listCandidateProfiles(), eraseCandidateProfile()</text>
-
-  <polyline class="call" points="785,595 640,595 640,360 758,360"/>
-  <text x="634" y="478" class="tiny" text-anchor="middle" transform="rotate(-90 634 478)">getJobOpening(), eraseHiringData()</text>
-
-  <!-- ── Calls to the message broker (publish / consume) ───────────────────── -->
-  <polyline class="call" points="895,275 1060,215 1060,82"/>
-  <text x="1064" y="96" class="tiny">pub · sub</text>
-  <polyline class="call" points="950,490 1110,490 1110,82"/>
-  <text x="1114" y="110" class="tiny">sub · pub</text>
-  <polyline class="call" points="950,650 1140,650 1140,82"/>
-  <text x="1144" y="96" class="tiny">sub</text>
-  <polyline class="call" points="950,810 1170,810 1170,82"/>
-  <text x="1174" y="110" class="tiny">pub</text>
-
-  <!-- ── Adapters → external systems ───────────────────────────────────────── -->
-  <line class="call" x1="1057" y1="140" x2="1248" y2="168"/>
-  <text x="1150" y="146" class="tiny" text-anchor="middle">complete()</text>
-  <line class="call" x1="1057" y1="300" x2="1248" y2="410"/>
-  <text x="1112" y="344" class="tiny">storeResumeFile()</text>
-  <line class="call" x1="1057" y1="360" x2="1248" y2="590"/>
-  <text x="1178" y="512" class="tiny">sendEmail()</text>
-  <line class="call" x1="1057" y1="520" x2="1248" y2="430"/>
-  <text x="1120" y="484" class="tiny">fetchResumeFile()</text>
-  <line class="call" x1="1057" y1="620" x2="1248" y2="610"/>
-  <text x="1120" y="640" class="tiny">sendEmail()</text>
-
-  <!-- ── Legend ────────────────────────────────────────────────────────────── -->
-  <rect x="40" y="905" width="1430" height="70" rx="6" fill="#FAFAFA" stroke="#999"/>
-  <line class="call" x1="60" y1="930" x2="110" y2="930"/>
-  <text x="118" y="934" class="tiny">A → B: A calls B (request / invocation only)</text>
-  <rect x="345" y="918" width="40" height="24" class="tab"/>
-  <text x="392" y="934" class="tiny">API the service exposes (REST or gRPC)</text>
-  <polygon class="hex" points="600,930 612,918 636,918 648,930 636,942 612,942"/>
-  <text x="656" y="934" class="tiny">service = one business capability</text>
-  <use href="#db" x="845" y="913"/>
-  <text x="880" y="934" class="tiny">private data store, owned by that service only</text>
-  <rect x="1130" y="918" width="60" height="24" class="adapter"/>
-  <text x="1198" y="934" class="tiny">adapter to an external system</text>
-  <rect x="60" y="950" width="40" height="18" rx="6" fill="#FFF4D6" stroke="#333"/>
-  <text x="108" y="963" class="tiny">message broker — an arrow into it is a publish or a consume (pub / sub)</text>
-  <rect x="600" y="950" width="40" height="18" rx="6" fill="none" stroke="#666" stroke-dasharray="5,4"/>
-  <text x="648" y="963" class="tiny">external systems, outside the deployment · the Candidate is an indirect actor with no interface (the resume arrives through the Recruiter's upload)</text>
+  <text x="40" y="845" font-size="11" fill="#444">A → B means A calls B (responses are not drawn) · every call is REST in this version · one deployment per customer company (ADR-006).</text>
 </svg>
