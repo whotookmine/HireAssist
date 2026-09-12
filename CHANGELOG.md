@@ -15,6 +15,79 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 12:59 — Diagram: no arrow crosses a box
+
+- Hiring's two adapters stacked on its right edge (they sat side by side, and one adapter's arrow ran through the other); the Hiring → AI Service arrow now leaves from the top corner. Cosmetic.
+
+---
+
+## 2026-09-12 12:57 — Diagram: System Scheduler aligned with Compliance & Insights
+
+- Actor moved level with the service it calls so the arrow is horizontal. Cosmetic.
+
+---
+
+## 2026-09-12 12:52 — Architecture diagram laid out left to right
+
+- AI Service moved out of the service column into its own column between the domain services and
+  the external systems, and Identity placed under the gateway (the only thing that calls it). The
+  picture now reads left to right — actors → UI and gateway → domain services → AI Service →
+  external systems — and is a third shorter. Content unchanged.
+
+---
+
+## 2026-09-12 12:36 — Web UI renamed
+
+- *Recruiter Web UI* → **HireAssist Web UI** on the architecture diagram and page: it is the one
+  web application for every signed-in role, not a Recruiter-only screen.
+
+---
+
+## 2026-09-12 12:25 — Version 1 diagram shows REST for every call
+
+- The course's guidance for the first version is REST throughout and no message broker yet, so
+  the diagram now draws every call as REST: the per-resume hand-off is `screenResume()` /
+  `recordScreeningResult()`, Compliance reads pipeline events and rejected sign-ins through
+  `getPipelineEvents()` and `listAuthorisationRejections()`, and the AI Service exposes a REST API.
+  ADR-001 and ADR-002 stand — gRPC and RabbitMQ are drawn in a later version; `ARCHITECTURE.md`
+  says so.
+- The table in PR #4 marks these collaborations (gRPC) and (MQ); it should say (REST) and name the
+  same operations.
+- Detail cut to the FTGO example's level: service names, API tabs, stores, adapters, actors and
+  arrows — no operation labels, no legend. The operations live in the table and in the use case
+  traces on `ARCHITECTURE.md`.
+
+---
+
+## 2026-09-12 11:55 — Architecture diagram redrawn by hand in the FTGO style
+
+- `docs/diagrams/architecture-diagram.svg` is now a hand-laid SVG shaped like the course's FTGO
+  example — hexagon services with API tabs, private stores inside them, adapters on the edge,
+  external systems in a dashed box, actors on the left. Graphviz could not produce that shape, so
+  the PlantUML source was dropped; the SVG is the source and is edited directly.
+- Content unchanged from 11:40: same services, stores, calls and event names.
+
+---
+
+## 2026-09-12 11:40 — Architecture diagram, version 1
+
+- **`docs/ARCHITECTURE.md` and `docs/diagrams/architecture-diagram.{puml,svg}`** — the diagram half of
+  the *Microservice Design with Collaborations* deliverable, drawn to ADR-001…006 and to the
+  operations in the Service–Operations–Collaborators table (PR #4). Arrows follow the course
+  convention (A → B means A calls B; no response arrows); the page traces UC-1, UC-2 and UC-3
+  actor → operation → service → collaborator → store.
+- Drawn from the accepted decisions where the table still lags them: *Identity Service* not
+  *Identity & Workspace*, no workspace at the gateway (ADR-006), and no consent operations — consent
+  is not stored (23:34 entry). The table needs the same fixes before submission.
+- **No external OCR provider drawn.** The table lists a *Document Parsing / OCR Provider*; ADR-002
+  sends a scanned image to manual review as a permanent failure, and a second processor of resume
+  data would need its own decision. Parked in `CONTEXT.md`.
+- RabbitMQ stays in version 1 although the course allows REST-only: it is the decided UC-2 design
+  (ADR-002), not decoration — the page says why.
+- `README.md` links the new page.
+
+**Outstanding:** bring the table in line with ADR-006 and the consent change; decide the OCR
+question; service ownership and the erasure verification pass are still open.
 ## 2026-09-12 02:48 — Hiring reads the candidate profile from Resume Processing
 
 Walking UC-1 → UC-3 end to end exposed a missing edge: Hiring needs the candidate profile to
