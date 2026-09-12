@@ -15,6 +15,15 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 12:52 — Architecture diagram laid out left to right
+
+- AI Service moved out of the service column into its own column between the domain services and
+  the external systems, and Identity placed under the gateway (the only thing that calls it). The
+  picture now reads left to right — actors → UI and gateway → domain services → AI Service →
+  external systems — and is a third shorter. Content unchanged.
+
+---
+
 ## 2026-09-12 12:36 — Web UI renamed
 
 - *Recruiter Web UI* → **HireAssist Web UI** on the architecture diagram and page: it is the one

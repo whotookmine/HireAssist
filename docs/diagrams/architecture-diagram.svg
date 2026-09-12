@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 870" width="1300" height="870" font-family="Helvetica, Arial, sans-serif" font-size="13">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 700" width="1560" height="700" font-family="Helvetica, Arial, sans-serif" font-size="13">
   <!--
     HireAssist — Architecture Diagram, version 1 (Microservice Design with Collaborations)
     Hand-authored SVG in the style of the FTGO example used in the course. Edit this file directly.
@@ -53,132 +53,132 @@
   <text x="40" y="36" font-size="16" font-weight="bold">HireAssist — Architecture Diagram (version 1)</text>
 
   <!-- ── Actors ────────────────────────────────────────────────────────────── -->
-  <use href="#person" x="60" y="250"/>
-  <text x="60" y="298" class="lbl">Recruiter</text>
-  <use href="#browser" x="140" y="250"/>
+  <use href="#person" x="60" y="200"/>
+  <text x="60" y="248" class="lbl">Recruiter</text>
+  <use href="#browser" x="140" y="200"/>
 
-  <use href="#person" x="60" y="360"/>
-  <text x="60" y="408" class="lbl">Admin</text>
-  <use href="#browser" x="140" y="360"/>
+  <use href="#person" x="60" y="300"/>
+  <text x="60" y="348" class="lbl">Admin</text>
+  <use href="#browser" x="140" y="300"/>
 
-  <use href="#person" x="60" y="600"/>
-  <text x="60" y="648" class="lbl">System Scheduler</text>
-  <use href="#clock" x="140" y="600"/>
+  <use href="#person" x="60" y="540"/>
+  <text x="60" y="588" class="lbl">System Scheduler</text>
+  <use href="#clock" x="140" y="540"/>
 
-  <!-- ── Web UI and API Gateway ────────────────────────────────────────────── -->
-  <polygon class="hexEdge" points="195,305 232,255 308,255 345,305 308,355 232,355"/>
-  <text x="270" y="301" class="name">HireAssist</text>
-  <text x="270" y="318" class="name">Web UI</text>
+  <!-- ── Web UI, API Gateway, Identity ─────────────────────────────────────── -->
+  <polygon class="hexEdge" points="195,250 232,200 308,200 345,250 308,300 232,300"/>
+  <text x="270" y="246" class="name">HireAssist</text>
+  <text x="270" y="263" class="name">Web UI</text>
 
-  <polygon class="hexEdge" points="385,305 422,255 498,255 535,305 498,355 422,355"/>
-  <rect x="372" y="247" width="56" height="40" class="tab"/>
-  <text x="400" y="263" class="small">REST</text>
-  <text x="400" y="277" class="small">API</text>
-  <text x="462" y="301" class="name">API</text>
-  <text x="462" y="318" class="name">Gateway</text>
+  <polygon class="hexEdge" points="385,250 422,200 498,200 535,250 498,300 422,300"/>
+  <rect x="372" y="192" width="56" height="40" class="tab"/>
+  <text x="400" y="208" class="small">REST</text>
+  <text x="400" y="222" class="small">API</text>
+  <text x="462" y="246" class="name">API</text>
+  <text x="462" y="263" class="name">Gateway</text>
 
-  <!-- ── Services. Hexagon: cx=760, w=210, h=100 ───────────────────────────── -->
-  <!-- AI Service, cy=150 -->
-  <polygon class="hex" points="655,150 707,100 813,100 865,150 813,200 707,200"/>
-  <rect x="615" y="100" width="60" height="40" class="tab"/>
-  <text x="645" y="116" class="small">REST</text>
-  <text x="645" y="130" class="small">API</text>
-  <text x="760" y="147" class="name">AI</text>
-  <text x="760" y="164" class="name">Service</text>
-  <rect x="872" y="105" width="92" height="42" class="adapter"/>
-  <text x="918" y="123" class="small">LLM</text>
-  <text x="918" y="137" class="small">Adapter</text>
+  <polygon class="hex" points="355,430 402,385 498,385 545,430 498,475 402,475"/>
+  <rect x="345" y="380" width="56" height="40" class="tab"/>
+  <text x="373" y="396" class="small">REST</text>
+  <text x="373" y="410" class="small">API</text>
+  <text x="440" y="427" class="name">Identity</text>
+  <text x="440" y="444" class="name">Service</text>
+  <use href="#db" x="515" y="440"/>
 
-  <!-- Hiring Service, cy=300 -->
-  <polygon class="hex" points="655,300 707,250 813,250 865,300 813,350 707,350"/>
-  <rect x="615" y="250" width="60" height="40" class="tab"/>
-  <text x="645" y="266" class="small">REST</text>
-  <text x="645" y="280" class="small">API</text>
-  <text x="750" y="297" class="name">Hiring</text>
-  <text x="750" y="314" class="name">Service</text>
-  <use href="#db" x="830" y="318"/>
-  <rect x="872" y="252" width="92" height="42" class="adapter"/>
-  <text x="918" y="270" class="small">Object Storage</text>
-  <text x="918" y="284" class="small">Adapter</text>
-  <rect x="872" y="304" width="92" height="42" class="adapter"/>
-  <text x="918" y="322" class="small">Email</text>
-  <text x="918" y="336" class="small">Adapter</text>
+  <!-- ── Domain services (middle column). Hexagon: cx=740, w=210, h=100 ──── -->
+  <!-- Hiring Service, cy=230 -->
+  <polygon class="hex" points="635,230 687,180 793,180 845,230 793,280 687,280"/>
+  <rect x="595" y="180" width="60" height="40" class="tab"/>
+  <text x="625" y="196" class="small">REST</text>
+  <text x="625" y="210" class="small">API</text>
+  <text x="730" y="227" class="name">Hiring</text>
+  <text x="730" y="244" class="name">Service</text>
+  <use href="#db" x="810" y="246"/>
+  <rect x="830" y="288" width="92" height="42" class="adapter"/>
+  <text x="876" y="306" class="small">Object Storage</text>
+  <text x="876" y="320" class="small">Adapter</text>
+  <rect x="930" y="288" width="92" height="42" class="adapter"/>
+  <text x="976" y="306" class="small">Email</text>
+  <text x="976" y="320" class="small">Adapter</text>
 
-  <!-- Resume Processing Service, cy=450 -->
-  <polygon class="hex" points="655,450 707,400 813,400 865,450 813,500 707,500"/>
-  <rect x="615" y="400" width="60" height="40" class="tab"/>
-  <text x="645" y="416" class="small">REST</text>
-  <text x="645" y="430" class="small">API</text>
-  <text x="750" y="440" class="name">Resume</text>
-  <text x="750" y="457" class="name">Processing</text>
-  <text x="750" y="474" class="name">Service</text>
-  <use href="#db" x="830" y="468"/>
-  <rect x="872" y="429" width="92" height="42" class="adapter"/>
-  <text x="918" y="447" class="small">Object Storage</text>
-  <text x="918" y="461" class="small">Adapter</text>
+  <!-- Resume Processing Service, cy=400 -->
+  <polygon class="hex" points="635,400 687,350 793,350 845,400 793,450 687,450"/>
+  <rect x="595" y="350" width="60" height="40" class="tab"/>
+  <text x="625" y="366" class="small">REST</text>
+  <text x="625" y="380" class="small">API</text>
+  <text x="730" y="390" class="name">Resume</text>
+  <text x="730" y="407" class="name">Processing</text>
+  <text x="730" y="424" class="name">Service</text>
+  <use href="#db" x="810" y="416"/>
+  <rect x="852" y="379" width="92" height="42" class="adapter"/>
+  <text x="898" y="397" class="small">Object Storage</text>
+  <text x="898" y="411" class="small">Adapter</text>
 
-  <!-- Compliance & Insights Service, cy=600 -->
-  <polygon class="hex" points="655,600 707,550 813,550 865,600 813,650 707,650"/>
-  <rect x="615" y="550" width="60" height="40" class="tab"/>
-  <text x="645" y="566" class="small">REST</text>
-  <text x="645" y="580" class="small">API</text>
-  <text x="750" y="590" class="name">Compliance &amp;</text>
-  <text x="750" y="607" class="name">Insights</text>
-  <text x="750" y="624" class="name">Service</text>
-  <use href="#db" x="830" y="618"/>
-  <rect x="872" y="579" width="92" height="42" class="adapter"/>
-  <text x="918" y="597" class="small">Email</text>
-  <text x="918" y="611" class="small">Adapter</text>
+  <!-- Compliance & Insights Service, cy=560 -->
+  <polygon class="hex" points="635,560 687,510 793,510 845,560 793,610 687,610"/>
+  <rect x="595" y="510" width="60" height="40" class="tab"/>
+  <text x="625" y="526" class="small">REST</text>
+  <text x="625" y="540" class="small">API</text>
+  <text x="730" y="550" class="name">Compliance &amp;</text>
+  <text x="730" y="567" class="name">Insights</text>
+  <text x="730" y="584" class="name">Service</text>
+  <use href="#db" x="810" y="576"/>
+  <rect x="852" y="539" width="92" height="42" class="adapter"/>
+  <text x="898" y="557" class="small">Email</text>
+  <text x="898" y="571" class="small">Adapter</text>
 
-  <!-- Identity Service, cy=750 -->
-  <polygon class="hex" points="655,750 707,700 813,700 865,750 813,800 707,800"/>
-  <rect x="615" y="700" width="60" height="40" class="tab"/>
-  <text x="645" y="716" class="small">REST</text>
-  <text x="645" y="730" class="small">API</text>
-  <text x="750" y="747" class="name">Identity</text>
-  <text x="750" y="764" class="name">Service</text>
-  <use href="#db" x="830" y="768"/>
+  <!-- ── AI Service (right column). cx=1090, cy=150 ─────────────────────────── -->
+  <polygon class="hex" points="985,150 1037,100 1143,100 1195,150 1143,200 1037,200"/>
+  <rect x="945" y="100" width="60" height="40" class="tab"/>
+  <text x="975" y="116" class="small">REST</text>
+  <text x="975" y="130" class="small">API</text>
+  <text x="1090" y="147" class="name">AI</text>
+  <text x="1090" y="164" class="name">Service</text>
+  <rect x="1202" y="129" width="92" height="42" class="adapter"/>
+  <text x="1248" y="147" class="small">LLM</text>
+  <text x="1248" y="161" class="small">Adapter</text>
 
   <!-- ── External systems ──────────────────────────────────────────────────── -->
-  <rect x="1050" y="90" width="230" height="600" rx="6" fill="none" stroke="#666" stroke-dasharray="7,5"/>
-  <text x="1165" y="112" class="small" font-weight="bold">External systems</text>
+  <rect x="1300" y="90" width="230" height="540" rx="6" fill="none" stroke="#666" stroke-dasharray="7,5"/>
+  <text x="1415" y="112" class="small" font-weight="bold">External systems</text>
 
-  <rect x="1070" y="125" width="190" height="60" rx="26" class="ext"/>
-  <text x="1165" y="151" class="name">LLM Provider</text>
-  <text x="1165" y="167" class="small">Anthropic Claude API</text>
+  <rect x="1320" y="120" width="190" height="60" rx="26" class="ext"/>
+  <text x="1415" y="146" class="name">LLM Provider</text>
+  <text x="1415" y="162" class="small">Anthropic Claude API</text>
 
-  <rect x="1070" y="360" width="190" height="60" rx="26" class="ext"/>
-  <text x="1165" y="386" class="name">Object Storage</text>
-  <text x="1165" y="402" class="small">S3-compatible (MinIO)</text>
+  <rect x="1320" y="360" width="190" height="60" rx="26" class="ext"/>
+  <text x="1415" y="386" class="name">Object Storage</text>
+  <text x="1415" y="402" class="small">S3-compatible (MinIO)</text>
 
-  <rect x="1070" y="590" width="190" height="60" rx="26" class="ext"/>
-  <text x="1165" y="616" class="name">Email Provider</text>
-  <text x="1165" y="632" class="small">SMTP / SES</text>
+  <rect x="1320" y="520" width="190" height="60" rx="26" class="ext"/>
+  <text x="1415" y="546" class="name">Email Provider</text>
+  <text x="1415" y="562" class="small">SMTP / SES</text>
 
   <!-- ── Calls (A → B means A calls B) ─────────────────────────────────────── -->
-  <line class="call" x1="169" y1="250" x2="234" y2="282"/>
-  <line class="call" x1="169" y1="360" x2="234" y2="328"/>
-  <line class="call" x1="347" y1="305" x2="383" y2="305"/>
+  <line class="call" x1="169" y1="200" x2="234" y2="228"/>
+  <line class="call" x1="169" y1="300" x2="234" y2="272"/>
+  <line class="call" x1="347" y1="250" x2="383" y2="250"/>
 
-  <line class="call" x1="537" y1="303" x2="613" y2="272"/>
-  <line class="call" x1="537" y1="307" x2="613" y2="572"/>
-  <line class="call" x1="535" y1="311" x2="613" y2="722"/>
+  <line class="call" x1="537" y1="248" x2="593" y2="205"/>
+  <line class="call" x1="537" y1="252" x2="593" y2="530"/>
+  <line class="call" x1="450" y1="302" x2="450" y2="383"/>
 
-  <line class="call" x1="169" y1="600" x2="653" y2="600"/>
+  <line class="call" x1="169" y1="540" x2="633" y2="560"/>
 
-  <line class="call" x1="760" y1="248" x2="760" y2="202"/>
-  <line class="call" x1="740" y1="352" x2="740" y2="398"/>
-  <line class="call" x1="780" y1="398" x2="780" y2="352"/>
-  <polyline class="call" points="813,400 985,400 985,175 840,175"/>
-  <line class="call" x1="780" y1="548" x2="780" y2="502"/>
-  <polyline class="call" points="707,550 585,550 585,330 683,330"/>
-  <line class="call" x1="760" y1="652" x2="760" y2="698"/>
+  <line class="call" x1="740" y1="282" x2="740" y2="348"/>
+  <line class="call" x1="780" y1="348" x2="780" y2="282"/>
+  <line class="call" x1="780" y1="508" x2="780" y2="452"/>
+  <polyline class="call" points="720,510 720,478 575,478 575,258 662,258"/>
+  <line class="call" x1="687" y1="510" x2="549" y2="432"/>
 
-  <line class="call" x1="965" y1="126" x2="1068" y2="150"/>
-  <line class="call" x1="965" y1="273" x2="1068" y2="385"/>
-  <line class="call" x1="965" y1="325" x2="1068" y2="612"/>
-  <line class="call" x1="965" y1="450" x2="1068" y2="395"/>
-  <line class="call" x1="965" y1="600" x2="1068" y2="622"/>
+  <line class="call" x1="847" y1="230" x2="983" y2="152"/>
+  <polyline class="call" points="793,350 1060,350 1060,202"/>
 
-  <text x="40" y="845" font-size="11" fill="#444">A → B means A calls B (responses are not drawn) · every call is REST in this version · one deployment per customer company (ADR-006).</text>
+  <line class="call" x1="1295" y1="150" x2="1318" y2="150"/>
+  <line class="call" x1="922" y1="309" x2="1318" y2="385"/>
+  <line class="call" x1="1022" y1="309" x2="1318" y2="545"/>
+  <line class="call" x1="944" y1="400" x2="1318" y2="395"/>
+  <line class="call" x1="944" y1="560" x2="1318" y2="555"/>
+
+  <text x="40" y="672" font-size="11" fill="#444">A → B means A calls B (responses are not drawn) · every call is REST in this version · one deployment per customer company (ADR-006).</text>
 </svg>
