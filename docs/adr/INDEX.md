@@ -18,19 +18,35 @@ The course requires **at least 3 ADRs** as part of the project proposal submissi
 | [ADR-003](ADR-003-polyglot-persistence.md) | PostgreSQL as system of record, MongoDB for AI-derived documents | Accepted | 2026-09-11 |
 | [ADR-004](ADR-004-llm-access.md) | All model access through one AI Service, on a managed API that does not train on our data | Accepted | 2026-09-11 |
 | [ADR-005](ADR-005-per-service-language.md) | Each service chooses its own language and framework, within shared contracts | **Proposed** | 2026-09-11 |
-| [ADR-006](ADR-006-single-tenant-deployment.md) | One deployment per customer company — the workspace concept is removed | Accepted | 2026-09-11 |
+| [ADR-006](ADR-006-single-tenant-deployment.md) | One deployment per customer company | Accepted | 2026-09-11 |
 
 The four are best read in order: ADR-001 draws the boundaries, ADR-002 fills in the busiest one,
 ADR-003 says what each side stores, and ADR-004 fills in the dependency the others are built to
 survive. ADR-002 and ADR-004 are a deliberate pair — running without a fallback model is only
 acceptable because no accepted work is lost (NFR-10).
 
-Of the eight candidates listed below on 2026-09-11, five are answered by these records: the
+Five candidates identified on 2026-09-11 have since been answered and removed from the list
+below, which now holds nine: the
 model-provider question by ADR-004; work-queue topology, worker scaling and delivery guarantee by
 ADR-002; the scorer boundary by ADR-001 and ADR-004, with per-criterion evidence persistence by
 ADR-003; service discovery by ADR-001; and the datastore split by ADR-003.
 
 ---
+
+## What later records have changed
+
+The ADRs are a stack: an earlier record is never edited because of a later one, so each states
+what was decided on its date and nothing after. This section is the living view — it is the only
+place that tracks which parts of an earlier record no longer hold.
+
+| Record | Still in force | Changed by a later record |
+|---|---|---|
+| **ADR-001** | The five services, the capability boundaries, the gateway, Kubernetes discovery, and REST on every boundary. | The single-backend-language assumption is withdrawn (ADR-005). The workspace concept is gone (ADR-006): the isolation force in *Issue*, the gateway's workspace resolution, the internal-call cost, and the *Identity & Workspace* name. |
+| **ADR-002** | All of it. | — |
+| **ADR-003** | The PostgreSQL / MongoDB split and the rule that decides which store new data goes in. | Documents carry `candidate_id` alone, with no `workspace_id` (ADR-006). |
+| **ADR-004** | All of it. | — |
+| **ADR-005** | The principle and the guardrails. Still *Proposed* — languages await service ownership. | The worst case its access-check argument guards against is now a privilege mistake inside one company, not a cross-company leak (ADR-006). |
+| **ADR-006** | All of it. | — |
 
 ## Candidate decisions
 
@@ -56,6 +72,6 @@ Identified from the architecturally significant requirements in
 
 - File name: `ADR-NNN-short-slug.md`, numbered sequentially from `001`.
 - Numbers are never reused, even if an ADR is superseded or withdrawn.
-- Superseding an ADR does not edit the original — set its status to
-  *Superseded by ADR-NNN* and write a new one.
+- Superseding an ADR does not edit the original in any way, its status included. Write a new
+  record stating what it replaces, and note it in *What later records have changed* above.
 - Add a row to the index in the same commit that adds the ADR.

@@ -31,7 +31,6 @@ actor "Admin" as AD
 
 ' ── Time-driven and indirect actors, who never sign in (right) ────
 actor "System Scheduler" as SCH
-actor "Candidate" as CD
 
 rectangle "HireAssist" {
   usecase "UC-0\nSign in" as UC0
@@ -61,7 +60,5 @@ G --- UC0
 UC4 --- SCH
 UC5 --- SCH
 
-' Candidate never signs in; it supplies the resume and consent decision UC-2 processes.
-UC2 .. CD
 
 @enduml

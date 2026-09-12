@@ -39,7 +39,10 @@ present or active voice — "We use X" / "We will use X" — never "we will inve
 ### Status
 
 *One of:* **Proposed** *(pending — stakeholders have not agreed yet)* · **Accepted**
-*(decided/approved)* · **Superseded by ADR-NNN** · **Deprecated**
+*(decided/approved)* · **Deprecated**
+
+*Set once, when the record is written. A later ADR does not reach back and change it — see
+"An ADR is a record made at a point in time" below.*
 
 ### Group *(optional)*
 
@@ -165,23 +168,27 @@ This has three consequences:
 2. **Never edit an earlier ADR's body to reflect a later decision.** The argument, the positions
    and the implications are what was believed then, and they stay that way even when they turn out
    to be wrong. A later reader needs to see the reasoning that was actually used.
-3. **Status is the exception**, because status is maintained over the life of a record. When a
-   later ADR overturns or narrows an earlier one, update the earlier one's Status — and only its
-   Status — with a dated line:
+3. **Never edit an earlier ADR at all — not even its Status — because of a later one.** The
+   records are a stack: you append, you do not reach back. An ADR is finished when it is written,
+   and it is only revised when someone deliberately asks for it to be, not as a side effect of
+   writing the next record.
 
-   ```
-   ### Status
+   This means an earlier ADR will describe things that are no longer true. That is correct and
+   intended: it is the record of a decision made on a date, not a description of the system today.
+   A reader who needs the current position reads the whole stack, newest last, or reads
+   `INDEX.md`, which is a living document and carries what each record has since changed.
 
-   **Accepted.**
+4. **To change a decision, push a new record.** Name the earlier one, state exactly which part of
+   it no longer holds, and give the argument for the replacement. The new record is where the
+   change is stated and the only file that gets written. There is no status to flip on the old
+   one, no note to add to it, nothing to strike through — it stays exactly as it was.
 
-   - *Amended 2026-09-11 by ADR-006: the workspace concept this record assumed is withdrawn;
-     the tenant-isolation force and the internal-call cost no longer apply.*
-   ```
+   This is why there is no *Superseded* status. A decision is overridden by the record that
+   overrides it, which is discoverable by reading forward; marking the old file would mean
+   reaching back into a finished record to point at the future.
 
-   Use **Superseded by ADR-NNN** when the whole decision is replaced, and a dated *Amended by*
-   line when only part of it is. Either way the reader is sent forward; the body stays as written.
-
-The later ADR carries the explanation. It is the record that knew.
+The later ADR carries the explanation. It is the record that knew, and it is the only one that
+should be written to.
 
 ## Write it to stand alone
 
@@ -214,8 +221,8 @@ same as no record.
 - Write it when the decision is made, not reconstructed before submission — the rejected
   alternatives are exactly what gets forgotten.
 - One decision per ADR. If the title needs an "and", split it.
-- Numbers are never reused. Superseding never edits the original; mark the old one
-  *Superseded by ADR-NNN* and write a new one.
+- Numbers are never reused. Superseding never edits the original in any way — write a new record
+  that states what it replaces, and let `INDEX.md` show which records are still in force.
 
 ## Other templates, for reference
 

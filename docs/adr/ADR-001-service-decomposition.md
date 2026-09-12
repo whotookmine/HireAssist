@@ -75,13 +75,6 @@ checking are one mechanism rather than two that can disagree. No separate regist
 
 **Accepted**
 
-- *Amended 2026-09-11 by ADR-005: the assumption of a single backend language is withdrawn. Each
-  service chooses its own within shared contracts; no replacement assumption is in force while
-  that record is Proposed.*
-- *Amended 2026-09-11 by ADR-006: the workspace concept is removed. Each customer runs its own
-  deployment, so the isolation force in Issue, the gateway's workspace resolution and the
-  internal-call cost below no longer apply. Identity & Workspace becomes the Identity Service.*
-
 ### Group
 
 Decomposition · Communication
@@ -238,8 +231,6 @@ in its own right:
 - Where the scoring model runs and who provides it.
 - What each side of these boundaries stores.
 - What the services are written in, and how cross-cutting concerns are handled if that differs.
-
-*(Later amendments are listed under Status.)*
 
 ### Related requirements
 

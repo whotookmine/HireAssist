@@ -163,7 +163,7 @@ instances is smaller than the engineering cost of the guarantee it replaces.
   it in advance.
 - **ADR-001's gateway loses one of its two stated jobs.** It still terminates TLS, validates the
   session token, resolves the role and routes; it no longer resolves a workspace or enforces
-  tenant isolation. That record is amended accordingly.
+  tenant isolation. This record, not that one, is where that change is stated.
 
 ---
 

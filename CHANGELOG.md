@@ -88,6 +88,95 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 **Outstanding:** bring the table in line with ADR-006 and the consent change; decide the OCR
 question; service ownership and the erasure verification pass are still open.
+---
+
+## 2026-09-12 05:38 — ADRs are append-only; amendment notes removed
+
+An ADR is a record made on a date, and a later decision must not reach back into it. Four dated
+*"Amended by ADR-NNN"* lines had been added to the Status of ADR-001 (x2), ADR-003 and ADR-005 —
+each an older record edited to know about a newer one. All removed, with ADR-001's pointer to them.
+
+- **TEMPLATE.md, CLAUDE.md** — the "Status is the exception" rule is replaced: nothing in an
+  earlier ADR is edited because of a later one, Status included. To change a decision, push a new
+  record naming the earlier one and stating what it overrides; that record is the only file
+  written. **No *Superseded* status** — marking the old file would itself be reaching back into a
+  finished record to point at the future. Revise an ADR only when explicitly asked.
+- **INDEX.md** — new "What later records have changed" table, per record: what still holds and
+  what a later ADR changed. This is where the amendment notes' information now lives. INDEX is a
+  living document; the ADRs are not.
+- ADR-006's "That record is amended accordingly" and ADR-005's "whose Assumptions this record
+  amends" reworded — pointing backwards is fine, implying the earlier file gets edited is not.
+
+---
+
+## 2026-09-12 05:10 — Added docs/OVERVIEW.md, the runtime view
+
+Nothing described how the system behaves call by call: the SOC table is static structure,
+PROPOSAL.md is user-facing scenarios, the ADRs give reasons. OVERVIEW.md fills the gap — per
+service what it owns / does / is called by / calls, then the request sequence behind UC-0 to UC-6.
+
+Explicitly **not a source of truth**, and says so at the top: it defers to PROPOSAL for use cases,
+the SOC table for operations, the ADRs for rationale. That precedence is stated in the document
+and in CLAUDE.md, because a second description of the same system is the thing that drifts.
+
+---
+
+## 2026-09-12 04:26 — Chain audit: nine stale references corrected
+
+Independent audit of PROPOSAL → use cases → FR → NFR → ADR → SOC. The renumbering held: all ~40
+requirement citations were re-read sentence-against-requirement and none miscites. Everything found
+was stale text, not design error:
+
+- **CONTEXT.md** — the OCR open question described an external provider the SOC table no longer
+  lists; the candidate-register question said the record is owned by no service when the SOC table
+  assigns it to Resume Processing; the FR count said 50, not 44; the "decided on 2026-09-11" list
+  omitted ADR-005 and ADR-006; one question was gated on the SOC table, which now exists.
+- **PROPOSAL.md** — status line said four ADRs; there are six.
+- **INDEX.md** — said eight candidate decisions where the table holds nine, and called them
+  answered by the records, which by construction they are not.
+- **ADR-006's title** was written three ways; all now use the record's own H1.
+- **SOC table** — Resume Processing's ownership line now reads "per-criterion scoring output", so
+  it no longer scans as owning the headline score Hiring holds.
+
+---
+
+## 2026-09-12 03:52 — All requirement blocks compacted
+
+Extended the UC-5 renumbering to the rest; no block now has a gap.
+
+`FR-0.4→0.3 · 0.6→0.4` · `FR-4.6→4.5 · 4.7→4.6`
+
+UC-1, UC-2, UC-3 and UC-6 were already contiguous. References rewritten in PROPOSAL.md,
+NON-FUNCTIONAL-REQUIREMENTS.md, adr/INDEX.md and ADR-001, ADR-003, ADR-005.
+
+**The hazard this created.** FR-0.3 was withdrawn by ADR-006 and three ADRs still named it. After
+compaction that id belongs to the two-roles requirement, so those references would have resolved
+silently to the wrong requirement — worse than a dangling id, because no check catches it.
+ADR-001, ADR-005 and ADR-006 now name it in words ("workspace scoping"). CLAUDE.md records the
+rule: a withdrawn requirement is never referred to by id after a renumbering.
+
+---
+
+## 2026-09-12 03:34 — UC-5 requirement ids compacted
+
+Three withdrawals had left the retention block reading 5.1, 5.2, 5.5-5.7, 5.9-5.11. Renumbered
+contiguously by decision, while nothing has been submitted:
+
+`FR-5.5→5.3 · 5.6→5.4 · 5.7→5.5 · 5.9→5.6 · 5.10→5.7 · 5.11→5.8`
+
+This breaks the stable-id rule deliberately and edits requirement references inside ADRs, which
+are point-in-time records. Defensible only because nothing is submitted yet.
+FUNCTIONAL-REQUIREMENTS.md and CLAUDE.md record it as a one-off, not a precedent.
+
+---
+
+## 2026-09-12 03:20 — Stale requirement id in the NFR document
+
+- **NON-FUNCTIONAL-REQUIREMENTS.md** — the PDPA note cited "FR-5.1 to FR-5.12"; the retention block
+  ends at FR-5.11. Corrected. Pre-existing, left behind when FR-5.12 was withdrawn.
+
+---
+
 ## 2026-09-12 02:48 — Hiring reads the candidate profile from Resume Processing
 
 Walking UC-1 → UC-3 end to end exposed a missing edge: Hiring needs the candidate profile to

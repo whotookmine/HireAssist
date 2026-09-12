@@ -54,6 +54,7 @@ Claude Code session that has it loaded.
 | `docs/PROPOSAL.md` | **Source of truth.** Everything settled: name, problem, customers, use cases, requirements, ADR summaries. | Unresolved questions, internal deliberation |
 | `docs/CONTEXT.md` | Only what is *not* settled: open questions, open decisions, glossary, provenance. | Anything already stated in PROPOSAL.md |
 | `docs/adr/` | One file per architectural decision, plus `INDEX.md`. | Decisions still being debated |
+| `docs/OVERVIEW.md` | The **runtime view**: per-service ownership and the call sequence behind each use case. Defers to PROPOSAL (use cases), the SOC table (operations) and the ADRs (why) — correct it whenever any of those change. | Anything it would be the source of truth for |
 | `README.md` | Orientation: pitch, team, doc index, use case list, repo status. | Detail that belongs in PROPOSAL.md |
 | `CHANGELOG.md` | A dated summary of what changed and **why**, newest first. | File-by-file diffs |
 
@@ -131,7 +132,13 @@ gets wrong — lives in that file.
 - Write the ADR when the decision is made. Reconstructing the reasoning later does not work —
   the rejected alternatives are exactly what gets forgotten.
 - Add the `INDEX.md` row in the same commit as the ADR.
-- Superseding never edits the original: set the old status to *Superseded by ADR-NNN*.
+- **Never edit an existing ADR because of a new one** — not the body, not the Status. The records
+  are a stack: append, never reach back. An earlier ADR describing something no longer true is
+  correct; it records a decision made on a date. `docs/adr/INDEX.md` is the living view and carries
+  what each record has since changed. Revise an ADR only when explicitly asked to.
+- **To change a decision, write a new ADR** that names the earlier one and states what it
+  overrides. That new record is the only file written — there is no *Superseded* status to set and
+  nothing to mark on the old one. Push, never reach back.
 - A decision recorded in an ADR that contradicts `PROPOSAL.md` means `PROPOSAL.md` is now
   wrong — fix it.
 

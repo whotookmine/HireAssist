@@ -45,8 +45,7 @@ Raised by the ADRs recorded on 2026-09-11, and load-bearing for them:
 
 ## 2. Open decisions — ADR candidates
 
-Each of these should become an ADR, or be folded into one, before the architecture diagram
-and the Service–Operations–Collaborators table are produced.
+Each of these should become an ADR, or be folded into one, before implementation begins.
 
 - [ ] **Erasure cascade — orchestration or choreography.** The Service–Operations–Collaborators
       table assumes orchestration: Compliance & Insights calls each holder and tracks completion.
@@ -55,15 +54,16 @@ and the Service–Operations–Collaborators table are produced.
       candidates are added to the talent pool, but the pool is a view — candidates that have not
       expired — not a collection anyone maintains, and the term earned its place when D-1
       re-matching was in scope. Separately, the record FR-2.11 actually creates (candidate
-      identity plus collection date, the anchor retention runs on) is named in no service.
+      identity plus collection date, the anchor retention runs on) is assigned to Resume
+      Processing in the Service–Operations–Collaborators table but is not yet settled in an ADR.
       Resume Processing already owns the parsed profile, so splitting identity from profile would
       create a dual write across services. Parked 2026-09-12.
 - [ ] **Resume text extraction — a library inside Resume Processing, or an external OCR
-      provider?** The Service–Operations–Collaborators table (PR #4) lists a *Document Parsing /
-      OCR Provider* as an external system; ADR-002 treats a scanned image with no text layer as a
-      permanent failure sent to manual review, and an external provider would be a second processor
-      of resume data needing the same terms check as the model provider (ADR-004). The architecture
-      diagram draws extraction as internal until this is decided. Parked 2026-09-12.
+      provider?** The Service–Operations–Collaborators table draws extraction as an in-process
+      library in Resume Processing, and ADR-002 treats a scanned image with no text layer as a
+      permanent failure sent to manual review. An external OCR provider is the undecided
+      alternative: it would be a second processor of resume data, needing the same terms check as
+      the model provider (ADR-004). Parked 2026-09-12.
 - [ ] **Resume ingestion channel.** Batch upload is confirmed in UC-2. Is an automated channel
       (IMAP/webhook) in scope, or a stated future extension? *(Currently unresolved — the
       proposal's positioning says "plugs into existing channels" while UC-2 is upload-only.)*
@@ -88,7 +88,8 @@ and the Service–Operations–Collaborators table are produced.
 
 Decided on 2026-09-11 and moved out of this file — see [adr/INDEX.md](adr/INDEX.md): service
 decomposition, protocols and service discovery (ADR-001), the async processing model for UC-2
-(ADR-002), the datastore split (ADR-003), and LLM provider and placement (ADR-004).
+(ADR-002), the datastore split (ADR-003), LLM provider and placement (ADR-004), per-service
+language choice (ADR-005, Proposed), and one deployment per customer (ADR-006).
 
 ---
 
@@ -96,7 +97,7 @@ decomposition, protocols and service discovery (ADR-001), the async processing m
 
 Written up and moved out of this file:
 
-- **Functional** — `FUNCTIONAL-REQUIREMENTS.md` (50, numbered by use case)
+- **Functional** — `FUNCTIONAL-REQUIREMENTS.md` (44, numbered by use case)
 - **Non-functional** — `NON-FUNCTIONAL-REQUIREMENTS.md` (17, grouped by quality attribute)
 
 The quality attribute demonstrated for the course requirement is **Scalability**, measured as

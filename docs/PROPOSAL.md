@@ -3,7 +3,8 @@
 *Software Architecture — Term Project*
 
 > **Status:** Draft 3 — Project Description, Use Cases, Functional and Non-functional
-> Requirements, the use case diagram (UML, PlantUML source), and the first four ADRs complete.
+> Requirements, the use case diagram (UML, PlantUML source), and six ADRs — five accepted,
+> ADR-005 proposed — complete.
 
 ---
 
@@ -732,7 +733,7 @@ and cannot drift between a summary and the record it summarises.
 | [ADR-003](adr/ADR-003-polyglot-persistence.md) | PostgreSQL as system of record, MongoDB for AI-derived documents, object storage for resume files | Accepted |
 | [ADR-004](adr/ADR-004-llm-access.md) | All model access through one AI Service, on a managed API that does not train on our data | Accepted |
 | [ADR-005](adr/ADR-005-per-service-language.md) | Each service chooses its own language and framework, within shared contracts | **Proposed** — languages await service ownership |
-| [ADR-006](adr/ADR-006-single-tenant-deployment.md) | One deployment per customer company — the workspace concept is removed and isolation becomes a property of deployment | Accepted |
+| [ADR-006](adr/ADR-006-single-tenant-deployment.md) | One deployment per customer company | Accepted |
 
 They are best read in order: **ADR-001** draws the service boundaries, **ADR-002** fills in the
 busiest one, **ADR-003** says what each side of those boundaries stores, and **ADR-004** fills in

@@ -105,10 +105,6 @@ The principle and the guardrails are ready; the choices are not. Before this can
 Until then, ADR-001's assumption that a single language is used is withdrawn, and no replacement
 is in force.
 
-- *Amended 2026-09-11 by ADR-006: the workspace concept is removed, so the cross-company leak this
-  record treated as the worst outcome of a duplicated access check can no longer occur. What
-  remains is a privilege mistake inside one company — serious, but bounded.*
-
 ### Group
 
 Implementation · Team
@@ -247,7 +243,7 @@ the point rather than a concession.
 
 ### Related artifacts
 
-- [ADR-001](ADR-001-service-decomposition.md), whose Assumptions this record amends
+- [ADR-001](ADR-001-service-decomposition.md), whose single-language assumption this record withdraws
 - The repository structure and CI configuration, once implementation starts
 
 ### Related principles

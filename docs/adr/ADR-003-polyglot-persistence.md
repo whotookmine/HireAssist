@@ -81,10 +81,6 @@ another's tables. Two services needing the same fact exchange it in a call, not 
 
 **Accepted**
 
-- *Amended 2026-09-11 by ADR-006: the workspace concept is removed. MongoDB documents carry
-  `candidate_id` alone, because one deployment holds one company's data, and the retention policy
-  is per deployment.*
-
 ### Group
 
 Data
