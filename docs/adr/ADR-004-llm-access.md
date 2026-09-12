@@ -44,11 +44,11 @@ worker count, may also turn out to be the ceiling on the throughput we must demo
 ### Decision
 
 **1. Every model call goes through the AI Service. No other service holds a model credential or
-a prompt.** The AI Service exposes gRPC operations in domain terms, not model terms:
+a prompt.** The AI Service exposes REST operations in domain terms, not model terms:
 
-- `ExtractCriteria(free_text, language) → proposed title, weighted criteria` (UC-1)
-- `ScoreProfile(candidate_profile, criteria) → score, must-have check, justification` (UC-2)
-- `GenerateInterviewGuide(candidate_profile, criteria, emphasis) → tagged questions` (UC-3)
+- `POST /criteria-extractions` — *(free text, language)* → proposed title, weighted criteria (UC-1)
+- `POST /profile-scores` — *(candidate profile, criteria)* → score, must-have check, justification (UC-2)
+- `POST /interview-guides` — *(candidate profile, criteria, emphasis)* → tagged questions (UC-3)
 
 Callers ask for a screening score, never for a completion. The provider, the model name, the
 prompt and the token budget do not appear in any other service's contract. This is NFR-17 made
@@ -61,7 +61,7 @@ the OpenAI and Google Gemini paid API tiers carry comparable commitments and rem
 The provider is configuration, not code.
 
 **3. There is no fallback model.** When the provider is unavailable the system does not switch to
-a weaker one. Work waits in the queue, retries with backoff, and — if the retry budget is
+a weaker one. Work waits in the caller's work table, retries with backoff, and — if the retry budget is
 exhausted — the affected resumes are marked *needs manual review*, exactly as
 [ADR-002](ADR-002-async-screening-pipeline.md) specifies and as UC-2's alternate flow 4a already
 promised.
@@ -121,8 +121,8 @@ AI/LLM · Security · Cost
 - Personal data may be disclosed to a processor only under terms bounding its use, and must
   remain erasable on request or on expiry.
 - Customers are price-sensitive, so per-candidate cost is bounded by what an SME will pay.
-- [ADR-001](ADR-001-service-decomposition.md) established the AI Service as a separate,
-  gRPC-only service not exposed through the gateway.
+- [ADR-001](ADR-001-service-decomposition.md) established the AI Service as a separate service,
+  reached over REST like every other boundary and not exposed through the gateway.
 - [ADR-002](ADR-002-async-screening-pipeline.md) fixed how failures of this dependency are
   handled.
 
@@ -158,7 +158,7 @@ system whose entire proposition is a comparable, justified score, and unanswerab
 recruiter asks why one was rated lower. It also doubles the prompt-tuning and evaluation surface
 for a four-person team. The promise we can honestly make is narrower: *every accepted resume
 reaches a terminal state* — scored, or flagged for manual review — not *the AI is always
-available*. The queue holds the work; the recruiter is told; nothing is lost or silently
+available*. The work table holds the work; the recruiter is told; nothing is lost or silently
 guessed.
 
 **Multi-provider failover (3)** has the same comparability problem in a milder form, plus two
@@ -182,7 +182,7 @@ hardware we do not have rules out self-hosting; Thai-language quality rules out 
 we could otherwise run; and comparability of scores rules out mixing models. What remains is a
 single managed provider — so the design work goes into making that dependency safe to have:
 minimise what is sent, cache what repeats, cap what it costs, record what produced each answer,
-and let the queue absorb its failures.
+and let the caller's retry policy absorb its failures.
 
 ### Implications
 
@@ -200,7 +200,7 @@ and let the queue absorb its failures.
 **What it costs us**
 
 - **During a provider outage, screening produces nothing.** Not slower results — no results. The
-  queue holds the work and the recruiter waits; if the outage outlives the retry budget, those
+  work table holds the work and the recruiter waits; if the outage outlives the retry budget, those
   resumes land in *needs manual review* and a human has to do what the product was bought to
   avoid. This is the direct, accepted consequence of having no fallback, and it belongs in the
   risk matrix.
@@ -216,7 +216,7 @@ and let the queue absorb its failures.
 - **Budget ceilings create a new failure mode**: a batch that stops mid-way because a deployment
   exhausted its allowance. That state has to be visible and resumable, or it looks identical to a
   bug.
-- **The AI Service is a bottleneck for everything.** Interactive criteria extraction queues
+- **The AI Service is a bottleneck for everything.** Interactive criteria extraction waits
   behind batch scoring unless the service separates them: the two need different rate-limit
   budgets, which is more machinery in the one service already holding the credential. And the
   provider's rate limit, not our worker count, may become the ceiling on the scalability
@@ -232,8 +232,9 @@ and let the queue absorb its failures.
 
 ### Related decisions
 
-- [ADR-001](ADR-001-service-decomposition.md) — created the AI Service and made it gRPC-only and
-  unreachable from the gateway; that boundary is what this record fills in.
+- [ADR-001](ADR-001-service-decomposition.md) — created the AI Service, put it behind REST like
+  every other boundary, and made it unreachable from the gateway; that boundary is what this
+  record fills in.
 - [ADR-002](ADR-002-async-screening-pipeline.md) — carries the failure handling this decision
   relies on. The two records are a pair: no fallback model is only acceptable because no work is
   lost.
@@ -256,7 +257,7 @@ and let the queue absorb its failures.
   this service before any prompt is built. **NFR-15** — per-criterion evidence, reproducible
   because the model version is stored with it. **NFR-16** — Thai and English. **NFR-17** — model
   and prompt change within this one service.
-- Required of us: the gRPC service; the demonstrated quality attribute, for which this record
+- Required of us: the demonstrated quality attribute, for which this record
   names a ceiling we do not control; and the risk matrix, to which it contributes provider outage,
   rate-limit ceiling, cost escalation, cross-border transfer and model drift.
 
@@ -271,8 +272,9 @@ creates.
   person rather than to a guess.
 - *Explainability is required, not optional* — a score without a reproducible justification is
   not acceptable, which is why the model version is stored with it.
-- *Easily reversible* — the provider is behind a domain-shaped gRPC interface precisely because
-  it is the part of this decision most likely to be wrong.
+- *Easily reversible* — the provider is behind a domain-shaped interface, not a model-shaped one,
+  precisely because it is the part of this decision most likely to be wrong. The three operations
+  above are the contract; the wire protocol carrying them is not.
 
 ---
 

@@ -15,6 +15,89 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 02:48 — Hiring reads the candidate profile from Resume Processing
+
+Walking UC-1 → UC-3 end to end exposed a missing edge: Hiring needs the candidate profile to
+generate an interview guide (UC-3 main flow step 2) and the written justification when a Recruiter
+opens a screened candidate, but both are Resume Processing's documents and the SOC table gave
+Hiring no read path to them.
+
+- **SOC table** — added `Hiring → ResumeProcessing.getCandidateProfile()`, with a note on why.
+- Rejected the alternative of carrying the justification back in `reportScreeningResult()` and
+  storing it in Hiring: that puts an AI-derived document in the relational system of record,
+  against ADR-003's split, and creates a second copy to erase and to disagree with the first. The
+  ranked list is unaffected either way — score and must-have check are Hiring's own columns.
+
+## 2026-09-12 02:20 — REST on every boundary; the broker and gRPC are deferred
+
+Nothing has been submitted yet, so the affected records were revised in place rather than
+superseded.
+
+- **ADR-001** — one protocol on every boundary, REST over HTTP/JSON, replacing REST + gRPC + MQ.
+  Boundaries are the expensive thing to get wrong and a protocol is not, so we place the
+  boundaries first and add protocol variety when a boundary demonstrates it needs it. New
+  rejected position 7 (protocol per boundary) carries the counter-argument.
+- **ADR-002** — rewritten. The queue moves inside Resume Processing as a claimable work table
+  (`SELECT … FOR UPDATE SKIP LOCKED`); Hiring hands over one resume per acknowledged REST call and
+  Resume Processing calls back with the result. What survives unchanged is the shape that was
+  actually argued: one unit of work per resume, at-least-once, idempotent upsert, classified
+  retries, a terminal state for work that will not succeed. Title and INDEX row updated.
+- **ADR-004** — the AI Service's three operations become REST endpoints; unchanged in substance.
+- **ADR-005** — guardrail 1 is now OpenAPI-only and is load-bearing rather than tidy: with no
+  schema-carrying wire format, the document is the only thing preventing contract drift.
+- **ADR-003, ADR-006** — incidental broker and gRPC mentions removed.
+- **SOC table** — protocol markers dropped, `ResumeSubmitted`/`ResumeScored` replaced by
+  `submitResumeForScreening()` and the `reportScreeningResult()` callback, domain events replaced
+  by `recordPipelineEvent()`. New open decision recorded: pushing pipeline events over REST makes
+  Compliance a synchronous dependency of Hiring's write path with no retry story.
+- **Criteria ownership settled:** they stay with the Job Opening in Hiring. Resume Processing
+  receives a snapshot in the handover body and holds it on the work row for the life of the entry
+  — never fetching, never owning. The snapshot still pins one criteria version per resume, so a
+  mid-batch edit cannot invalidate a justification.
+- **CLAUDE.md** — records the divergence explicitly: the course's REST + gRPC + broker spread is a
+  known open gap, not something to design around, and reinstating either protocol is an ADR.
+
+Outstanding: service ownership still blocks ADR-005; the erasure cascade, pipeline-event delivery
+and the interview-guide document store still need records; the independent audit of the
+UC → FR/NFR → ADR → SOC chain has not been run.
+
+## 2026-09-12 01:02 — Service–Operations–Collaborators table corrected
+
+Six rows described a system we no longer have, because the table was written against earlier
+versions of the documents:
+
+- Identity **& Workspace** Service, and the gateway "resolving the workspace" — the workspace
+  concept was removed by ADR-006.
+- `inviteMember()` — there is no invitation flow; an Admin creates the account with an initial
+  password.
+- Consent records and `recordConsent()` / `renewConsent()` — consent is obtained before a resume
+  arrives and is not stored, and retention extension was removed as not defensible.
+- `recordDecision()` — shortlisting is the only recorded decision; rejection is derived.
+
+Four collaborations conflicted with an ADR and were changed:
+
+- **Criteria now travel inside `ResumeSubmitted`** instead of Resume Processing calling Hiring per
+  resume. A synchronous call would reintroduce the mid-batch failure the queue removes, and
+  criteria edited mid-batch would mean two resumes scored against different versions.
+- **`extractProfileFields()` dropped from the AI Service** — parsing is deterministic and
+  in-process; ADR-004 defines three model operations and field extraction is not one.
+- **OCR adapter dropped** — a scanned image with no text layer is a permanent failure by design,
+  so an OCR provider contradicts the requirement rather than serving it.
+- **Compliance no longer calls `getJobOpening()`** — the dashboard is a projection built from
+  events, per ADR-001.
+
+Added: `listHeldExpiries()` / `resolveHeldExpiry()` for the held-expiry case, justifications and
+the candidate register under Resume Processing's owned data, and the `AuthorisationRejected`
+publisher moved from Identity to the Gateway, where the rejection happens.
+
+Kept from the original: the Email Adapter, which closes a notification gap no ADR owned.
+
+Three decisions the table was making silently are now listed at the bottom of it as needing
+records — erasure by orchestration, the candidate register's home, and a document store for
+interview guides. The first is also added to `CONTEXT.md`.
+
+---
+
 ## 2026-09-12 00:41 — Candidate record ownership parked as an open question
 
 - FR-2.11 adds candidates to a "talent pool" that no service owns, and the pool is a view rather

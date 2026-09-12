@@ -288,7 +288,7 @@ is abandoned.
 3. System displays the proposed structure for review.
 4. Recruiter edits criteria, weights, and must-have / nice-to-have flags.
 5. Recruiter sets expected time-to-fill and confirms.
-6. System stores the job opening as **open**, records the date it was opened, and publishes a *JobOpeningCreated* event.
+6. System stores the job opening as **open**, records the date it was opened, and reports the new opening to the pipeline dashboard.
 7. Recruiter may later pause, resume, or close the job opening.
 
 **Alternate flows**
@@ -727,8 +727,8 @@ and cannot drift between a summary and the record it summarises.
 
 | ID | Decision | Status |
 |---|---|---|
-| [ADR-001](adr/ADR-001-service-decomposition.md) | Capability-aligned service decomposition behind an API gateway — five services, the protocol at each boundary, and Kubernetes for service discovery | Accepted |
-| [ADR-002](adr/ADR-002-async-screening-pipeline.md) | One queued message per resume for batch screening — at-least-once delivery, idempotent results, classified retries, dead-lettering | Accepted |
+| [ADR-001](adr/ADR-001-service-decomposition.md) | Capability-aligned service decomposition behind an API gateway — five services, REST on every boundary, and Kubernetes for service discovery | Accepted |
+| [ADR-002](adr/ADR-002-async-screening-pipeline.md) | One independently retried unit of work per resume, held in a claimable work table — at-least-once delivery, idempotent results, classified retries, no message broker | Accepted |
 | [ADR-003](adr/ADR-003-polyglot-persistence.md) | PostgreSQL as system of record, MongoDB for AI-derived documents, object storage for resume files | Accepted |
 | [ADR-004](adr/ADR-004-llm-access.md) | All model access through one AI Service, on a managed API that does not train on our data | Accepted |
 | [ADR-005](adr/ADR-005-per-service-language.md) | Each service chooses its own language and framework, within shared contracts | **Proposed** — languages await service ownership |

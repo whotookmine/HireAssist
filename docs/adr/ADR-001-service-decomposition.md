@@ -16,8 +16,8 @@
 
 ### Issue
 
-Nothing else can be designed until the boundaries exist: the broker, the datastores and the model
-integration all sit on them. Four forces shape the split.
+Nothing else can be designed until the boundaries exist: the datastores, the model integration and
+the way work is handed between services all sit on them. Four forces shape the split.
 
 **Batch screening contains two workloads that do not belong in one process.** Accepting a batch
 of resumes must return in milliseconds. Screening one of them is parsing plus model calls —
@@ -50,17 +50,21 @@ Five services and one gateway, aligned to capabilities:
 | **AI Service** | Prompts and the model credential — no domain data |
 | **Compliance & Insights Service** | Retention policy, pipeline metrics, audit log |
 
-**Each boundary's protocol follows what crosses it:**
+**Every boundary is REST over HTTP/JSON — one protocol, no exceptions.** Client to gateway,
+gateway to service, and service to service all speak the same thing. It is browser-facing and
+public at the edge, readable in a network tab, debuggable without a client toolchain, and it
+means four students learn one wire format instead of three.
 
-- **Client → Gateway → Identity / Hiring / Compliance: REST over HTTP/JSON.** Browser-facing and
-  public. Readable in a network tab, no client toolchain, debuggable by a front-end developer
-  without help.
-- **Hiring and Resume Processing → AI Service: gRPC.** A high-volume internal call whose contract
-  must not drift: *(profile, criteria) → (score, must-have check, justification)*. Protobuf makes
-  it explicit and versioned instead of a hand-written JSON convention, generated clients remove a
-  class of integration bug, and streaming lets long output arrive incrementally.
-- **Hiring → Resume Processing, and domain events → Compliance & Insights: RabbitMQ.** Screening
-  is queued, not called. How the queue behaves is a separate decision.
+Two boundaries would each have argued for something else, and are deliberately served by REST
+anyway:
+
+- **Hiring and Resume Processing → AI Service** is a high-volume internal call whose contract must
+  not drift: *(profile, criteria) → (score, must-have check, justification)*. It is a JSON request
+  and a JSON response, held stable by an OpenAPI document rather than by a generated stub.
+- **Hiring → Resume Processing** is long-running work, not a query. REST cannot make it
+  synchronous: Hiring hands over one resume and gets an immediate acknowledgement, and Resume
+  Processing calls back with the result when it has one. Screening remains asynchronous; what
+  carries the asynchrony is a separate decision.
 
 **Service discovery is Kubernetes.** Each service is a Deployment behind a ClusterIP Service;
 services address each other by in-cluster DNS (`ai-service.hireassist.svc`) and kube-proxy
@@ -88,8 +92,8 @@ Decomposition · Communication
 
 ### Assumptions
 
-- Go is the backend language for all services. gRPC, protobuf and the Kubernetes client are
-  first-class there, and one language keeps four students able to read each other's code.
+- Go is the backend language for all services. One language keeps four students able to read each
+  other's code.
 - Deployment is to Kubernetes — managed, or local for the demo. Worth re-checking early: if the
   team cannot get a cluster running, discovery must be reconsidered, because everything depends
   on it.
@@ -99,9 +103,11 @@ Decomposition · Communication
 
 ### Constraints
 
-- At least one REST service, one gRPC service, one broker-driven service, an API gateway and a
-  documented discovery approach are required of us. A split that does not exercise all three
-  communication styles is unacceptable whatever its other merits.
+- An API gateway and a documented discovery approach are required of us, and so, eventually, is a
+  spread of communication styles — at least one service reached by REST, one by RPC and one driven
+  by a message broker. **This record knowingly does not satisfy the second half.** We are building
+  the boundaries first and the protocol variety second, on the argument that a boundary in the
+  wrong place is expensive to move and a protocol is not. The obligation is deferred, not denied.
 - Privacy law makes the *location* of personal data a design concern: the fewer services holding
   resume content, the smaller the surface that retention, access control and breach response
   must cover.
@@ -115,6 +121,8 @@ Decomposition · Communication
 4. **The chosen split with the AI Service merged into Resume Processing** — four services.
 5. **The chosen split with compliance folded into Hiring**, run by a scheduler inside it.
 6. **A separate service registry** such as Consul, instead of Kubernetes DNS.
+7. **A protocol chosen per boundary** — REST at the edge, gRPC into the AI Service, a message
+   broker between Hiring and Resume Processing — instead of REST everywhere.
 
 ### Argument
 
@@ -151,6 +159,24 @@ when the platform already provides one, and it puts registration in application 
 service that crashes without deregistering leaves a stale entry. Kubernetes derives the same
 information from probes it already runs. The cost is that the team must learn Kubernetes.
 
+**Against a protocol per boundary (7).** This is the one we expect to revisit, and it is the one
+we are most likely to be told is wrong. Each specialised choice is individually defensible: a
+generated stub cannot drift the way a hand-written JSON client can, and a broker gives retry,
+backpressure and dead-lettering for free rather than as code we write. What decided it is that
+none of those benefits arrives before the boundaries themselves are proven correct, and all of
+them arrive with a bill paid up front — a second wire format, a code-generation step in every
+build, broker infrastructure to run locally on four laptops, and three failure modes to learn
+instead of one.
+
+The boundaries are the expensive thing to get wrong. A boundary in the wrong place is re-owned
+data, a re-cut schema and a coordinated release; a protocol in the wrong place is one adapter
+rewritten behind an interface that already exists. So we place the boundaries now, run them all
+over the protocol every one of us can already debug, and change a protocol when a boundary
+demonstrates it needs one — the AI call when contract drift actually bites, the screening
+handover when our own retry logic starts reimplementing a broker badly. The risk we accept is
+that "first" becomes "only", and that the day we do need a broker we will be retrofitting it into
+code that assumed a synchronous acknowledgement.
+
 **For the chosen split.** Its three boundaries fall where three properties genuinely differ:
 *who triggers the work* — a human, a queued message, or the clock; *how long it may take* —
 milliseconds, minutes, or a full sweep; and *what it owns* — the transactional hiring record, the
@@ -180,14 +206,22 @@ on all three will still be in the right place in six months.
   count unless something reconciles.
 - **No distributed transactions.** An accepted batch whose messages are never consumed is
   inconsistent state nothing detects on its own; a reconciliation sweep becomes a requirement.
-- **Workspace identity must travel on every internal call**, including broker messages. If only
+- **Workspace identity must travel on every internal call.** If only
   the gateway checks, an internal caller with the wrong id silently reads another company's
   candidates. Every contract needs the field and every service must enforce it, not merely
   receive it.
-- **The team must learn Kubernetes** on top of protobuf and RabbitMQ — the largest schedule risk
-  this decision creates, landing on all four members.
-- **Six deployables plus two databases and a broker is heavy for a laptop.** Local development
-  needs resource limits or a reduced profile, or the demo machine becomes the constraint.
+- **The team must learn Kubernetes** — the largest schedule risk this decision creates, landing
+  on all four members. Holding the protocol count at one is partly how we afford it.
+- **Six deployables plus two databases is heavy for a laptop.** Local development needs resource
+  limits or a reduced profile, or the demo machine becomes the constraint.
+- **One protocol everywhere means the hard parts are ours to write.** REST gives us no retry, no
+  backpressure, no delivery guarantee and no dead-letter path; wherever a boundary needs those, we
+  build them by hand and test them ourselves. The first place that bites is the screening
+  handover, and the honest risk is that we rebuild a broker slowly and badly instead of running
+  one.
+- **The contract between two services is a document, not a compiler error.** With no generated
+  stubs, a field renamed on one side fails at runtime in the other. Contract tests have to do the
+  work a code generator would otherwise have done for free.
 
 ---
 
@@ -199,7 +233,8 @@ None precede this one. It is the first architectural decision recorded, and ever
 inherits the structure it sets. It **opens**, without settling, four questions — each a decision
 in its own right:
 
-- How work crosses the Hiring → Resume Processing boundary: topology, delivery guarantee, retry.
+- How work crosses the Hiring → Resume Processing boundary: what holds a resume between handover
+  and result, the delivery guarantee, and retry.
 - Where the scoring model runs and who provides it.
 - What each side of these boundaries stores.
 - What the services are written in, and how cross-cutting concerns are handled if that differs.
@@ -249,9 +284,10 @@ isolation of the model path, and the opposite resource profiles of parsing and s
 record should stand if the constraint were removed. The dissent is kept because it was real and
 may be right.
 
-We considered splitting the communication decision into its own record, then kept it here: each
-boundary's protocol was determined by what crosses it, so separating them would mean repeating the
-boundary rationale twice.
+We considered splitting the communication decision into its own record, then kept it here. With
+one protocol on every boundary there is no per-boundary rationale to separate out — the choice is
+a property of the decomposition, made once. If a boundary later takes a different protocol, *that*
+is its own record.
 
 The service owning monitoring and retention is named **Compliance & Insights** rather than
 *Insights & Notifications* because retention ownership is its defining responsibility, and because

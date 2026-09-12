@@ -48,6 +48,9 @@ Raised by the ADRs recorded on 2026-09-11, and load-bearing for them:
 Each of these should become an ADR, or be folded into one, before the architecture diagram
 and the Service–Operations–Collaborators table are produced.
 
+- [ ] **Erasure cascade — orchestration or choreography.** The Service–Operations–Collaborators
+      table assumes orchestration: Compliance & Insights calls each holder and tracks completion.
+      Needs an ADR before it is built, not a table row.
 - [ ] **Who owns the candidate record, and is "talent pool" still a useful term?** FR-2.11 says
       candidates are added to the talent pool, but the pool is a view — candidates that have not
       expired — not a collection anyone maintains, and the term earned its place when D-1
@@ -66,13 +69,13 @@ and the Service–Operations–Collaborators table are produced.
       how the verification pass works (FR-5.5, FR-5.11).
 - [ ] **Scheduler design** shared by UC-4 (staleness) and UC-5 (retention). Where the timer runs,
       how it behaves with more than one replica, and how a sweep that dies half-way resumes.
-- [ ] **Session and token mechanism for UC-0**, and how the role travels on internal
-      gRPC calls and broker messages. ADR-001 requires that it does, and says enforcement cannot
-      live only at the gateway — but not how.
+- [ ] **Session and token mechanism for UC-0**, and how the role travels on internal REST calls.
+      ADR-001 requires that it does, and says enforcement cannot live only at the gateway — but
+      not how.
 - [ ] **Front-end framework** and the shape of the recruiter-facing web application. The course
       requires a UI for the demonstration; nothing else about it is settled.
 - [ ] **Repository structure** once implementation starts — monorepo layout, and where the shared
-      protobuf definitions live.
+      OpenAPI definitions live.
 - [x] ~~Which quality attribute we demonstrate~~ → **Scalability** (NFR-07); how it is delivered
       and measured is in ADR-002.
 - [ ] ~~Re-match trigger (event vs. scheduled)~~ — moot while D-1 is deferred.

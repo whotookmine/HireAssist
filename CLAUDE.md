@@ -179,9 +179,13 @@ Silent synonyms are how a domain model rots.
 
 ## Constraints that shape every decision
 
-- **Course requirements** (`docs/course/REQUIREMENTS.md`) are non-negotiable: REST + gRPC +
-  message broker, API gateway, service discovery, RDBMS + NoSQL, 2 load tests, risk matrix,
-  one demonstrated quality attribute. Any architecture proposal must satisfy all of them.
+- **Course requirements** (`docs/course/REQUIREMENTS.md`): REST + gRPC + message broker, API
+  gateway, service discovery, RDBMS + NoSQL, 2 load tests, risk matrix, one demonstrated quality
+  attribute. All are satisfied **except the protocol spread**: as of 2026-09-12 the architecture
+  is **REST on every boundary, with no gRPC and no message broker** (ADR-001, ADR-002). That is a
+  deliberate first step — boundaries first, protocol variety second — and it is a known,
+  documented gap to close before the final submission, not an oversight to design around. Do not
+  quietly reintroduce gRPC or a broker into a document; changing it back is an ADR.
 - **PDPA** is a first-class design force, not a feature. Consent and retention gate what the
   system may do with candidate data.
 - **Never commit real resumes or candidate data.** `/data/` and `/uploads/` are gitignored.

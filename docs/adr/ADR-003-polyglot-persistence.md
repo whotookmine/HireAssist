@@ -75,7 +75,7 @@ authoritative for nothing.
 
 **Ownership follows the service boundary** set by
 [ADR-001](ADR-001-service-decomposition.md): each service owns its own schema and no service reads
-another's tables. Two services needing the same fact exchange it as an event, not a join.
+another's tables. Two services needing the same fact exchange it in a call, not a join.
 
 ### Status
 
@@ -101,7 +101,7 @@ Data
 - MongoDB documents are regenerable from the stored resume file, right up until retention deletes
   that file. After erasure nothing is regenerable, which is the intended behaviour.
 - The team can run both stores locally and in the cluster — a real load on a development machine
-  alongside a broker and six services.
+  alongside six services.
 - Both are open source and free to run, so licensing does not enter the decision.
 
 ### Constraints
@@ -153,7 +153,7 @@ means either treating a cache as durable — the classic way to lose data quietl
 **PostgreSQL + Elasticsearch (4)** solves a deferred problem. Full-text ranking across the
 candidate archive belongs to re-matching, which is parked; nothing in the current use cases
 searches resume text. Adopting a search cluster now buys a capability nothing uses and costs
-memory on a cluster already carrying six services, two databases and a broker.
+memory on a cluster already carrying six services and two databases.
 
 **One shared database (6)** would undo [ADR-001](ADR-001-service-decomposition.md) from below:
 services sharing tables are not independently deployable, and the first cross-service join
@@ -183,7 +183,7 @@ silently makes two services one.
   happen. The privacy surface is larger than with one store — the honest cost of the anonymisation
   benefit above.
 - **The dashboard cannot join across the split.** Metrics must be maintained in PostgreSQL from
-  domain events as they happen, not computed on demand. More code, and a lost event is a
+  services as work completes, not computed on demand. More code, and a lost update is a
   permanently wrong number until something reconciles it.
 - **The split rule has to be enforced by people.** The first time someone puts a decision reason in
   MongoDB "because it was easier", the boundary starts rotting and the anonymisation argument stops
@@ -191,7 +191,7 @@ silently makes two services one.
 - **Two data models for four students to learn**, including the parts that bite: migrations and
   connection pooling on one side, index behaviour and document-size limits on the other.
 - **Referential integrity stops at the service boundary anyway** — a foreign key cannot span
-  services, so some invariants are enforced by convention and events whichever store holds them.
+  services, so some invariants are enforced by convention and by calls whichever store holds them.
 
 ---
 
@@ -202,7 +202,7 @@ silently makes two services one.
 - [ADR-001](ADR-001-service-decomposition.md) — per-service data ownership, which this record
   refines into a concrete store-by-store split.
 - [ADR-002](ADR-002-async-screening-pipeline.md) — writes exactly one derived document per
-  successfully consumed message and one status transition per entry.
+  successfully completed unit of work and one status transition per entry.
 - **How model access is provided** — the model version recorded with each score is stored beside
   it, which is what makes an old justification reconstructable.
 

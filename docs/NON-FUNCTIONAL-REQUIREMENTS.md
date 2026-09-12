@@ -117,6 +117,6 @@ Each of the following should be answered by an ADR.
 |---|---|
 | NFR-02, NFR-06, NFR-08 | One model call per resume is slow and costly at volume, and a provider's rate limit may cap concurrency before the worker count does. Does screening need a tiered pipeline — a cheap deterministic filter first, the model only on the survivors? |
 | NFR-13, NFR-14 | Resumes are personal data under the PDPA. May they be sent to a third-party model provider, or must the model be self-hosted? |
-| NFR-07, NFR-10 | Queue topology, worker scaling and delivery guarantees for batch screening. What is the delivery guarantee, and where is the terminal state recorded? |
+| NFR-07, NFR-10 | What holds a resume between acceptance and its score, how workers scale, and what the delivery guarantee is. Where is the terminal state recorded? |
 | NFR-15, NFR-17 | An explainable score must persist its per-criterion evidence, and the scorer must sit behind a boundary that lets it change alone. Where is that boundary drawn? |
 | FR-5.5 | Erasure must reach every service holding the data. Which component owns that cascade — orchestration or choreography — and how does it stay correct as services are added? |
