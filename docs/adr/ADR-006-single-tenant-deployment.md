@@ -18,7 +18,7 @@
 Every use case reads or writes candidate personal data belonging to one company. Until now the
 documents assumed a shared installation in which a **workspace** identified the company, and in
 which isolation between companies was a property the code had to maintain: a workspace id on the
-session (FR-0.1), on every row and document, and on every internal call and broker message.
+session (FR-0.1), on every row and document, and on every internal call.
 
 That assumption was never decided. It arrived with the multi-tenant SaaS framing in *Target
 Customers* and propagated into the requirements and four ADRs without anyone weighing it.
@@ -29,7 +29,7 @@ The forces:
   another's candidates is a PDPA breach involving a third party's personal data, reported by our
   customer, caused by us. There is no partial version of this failure.
 - **Enforcement would be spread wide.** [ADR-001](ADR-001-service-decomposition.md) notes that
-  tenant identity must travel on every gRPC call and broker message and be enforced by each
+  tenant identity must travel on every internal call and be enforced by each
   service, not only at the gateway. [ADR-005](ADR-005-per-service-language.md) makes it worse: the
   check would exist in several codebases, in more than one language.
 - **We are four part-time developers**, none with production multi-tenancy experience, on a
@@ -42,13 +42,13 @@ The forces:
 ### Decision
 
 **Each customer company gets its own deployment of HireAssist** — its own services, its own
-PostgreSQL and MongoDB, its own object storage and broker. A deployment serves exactly one
+PostgreSQL and MongoDB, and its own object storage. A deployment serves exactly one
 company, and there is no concept of a tenant inside it.
 
 Consequently:
 
 - **The workspace concept is removed.** A session identifies a user and a role, not a company
-  (FR-0.1). There is no workspace id on a row, a document, a gRPC call or a broker message.
+  (FR-0.1). There is no workspace id on a row, a document or an internal call.
 - **Isolation between companies is a property of deployment, not of code.** No query filter, no
   row-level policy, and no per-call tenant check stands between one company's data and another's,
   because the other company's data is not in the database.
@@ -77,8 +77,8 @@ Deployment · Security
 
 - Customers are onboarded individually, by us, at a rate measured in weeks rather than minutes.
 - The number of customers during this project is one — the demo — and small afterwards.
-- A deployment is cheap enough to run per customer. The system is five services, two databases, a
-  broker and object storage; at SME load none of them needs to be large.
+- A deployment is cheap enough to run per customer. The system is five services, two databases
+  and object storage; at SME load none of them needs to be large.
 - Nobody needs to query across customers. No cross-customer reporting, benchmarking or shared
   talent pool is in scope. *(This is the assumption most likely to be wrong commercially — see
   Implications.)*
@@ -106,7 +106,7 @@ Deployment · Security
 ### Argument
 
 **Against the shared installation (1):** the cost of getting it wrong is unbounded and the cost of
-getting it right is paid in every service, every query and every message, forever. A workspace
+getting it right is paid in every service, every query and every call, forever. A workspace
 filter omitted from one query in one service leaks candidates between companies, and nothing about
 the system makes that omission loud — the query returns results, the screen renders, and only the
 data is wrong. ADR-001 already flags that gateway-only enforcement is insufficient; ADR-005 puts
@@ -127,7 +127,7 @@ a cheaper way to keep the option than writing unused plumbing.
 **For one deployment per customer (3):** isolation stops being something the code must achieve and
 becomes something the deployment already is. The failure mode that worried us most cannot occur,
 because the data is not present to leak. It also simplifies what remains: no tenant id in schemas,
-contracts or messages; no per-call resolution; one less thing every service must get right in
+contracts; no per-call resolution; one less thing every service must get right in
 whichever language it is written in. At our customer count, the operational cost of separate
 instances is smaller than the engineering cost of the guarantee it replaces.
 
@@ -137,7 +137,7 @@ instances is smaller than the engineering cost of the guarantee it replaces.
 
 - The cross-customer leak cannot happen. This is a guarantee by construction, which is the only
   kind worth making about personal data.
-- Schemas, contracts and broker messages lose a field, and every service loses a check.
+- Schemas and contracts lose a field, and every service loses a check.
 - A customer who demands their data never share a database with another company's is satisfied by
   the architecture, not by an explanation.
 - Per-customer configuration — retention policy above all — is configuration, not data.
@@ -151,7 +151,7 @@ instances is smaller than the engineering cost of the guarantee it replaces.
   This is the cost this decision buys the guarantee with, and it lands on a four-person team.
 - **Every customer must be on a version we still support.** Without a deployment pipeline that can
   upgrade them all, they drift apart and a bug fix has to be applied N times.
-- **Infrastructure cost per customer has a floor.** Two databases, a broker and object storage
+- **Infrastructure cost per customer has a floor.** Two databases and object storage
   cost something even at zero load, so a small customer may be unprofitable at a low price.
 - **No cross-customer anything.** No aggregate benchmarking ("your time-to-fill versus similar
   companies"), no shared talent pool, no product analytics without a separate pipeline that

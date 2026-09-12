@@ -38,9 +38,8 @@ The forces:
   stack does well.
 - **The team is four part-time developers with different strengths**, under a deadline, who also
   need to *learn* from this project — it is a course, not only a delivery.
-- **Contracts already cross every boundary** — gRPC into the AI Service, REST at the gateway,
-  broker messages between Hiring and Resume Processing. They must be explicit whether or not the
-  languages differ.
+- **Contracts already cross every boundary** — every service call is REST over HTTP/JSON, at the
+  gateway and between services alike. They must be explicit whether or not the languages differ.
 - **Whatever we choose, four people must still operate it**, correlate its logs, and cover for
   each other in demo week.
 
@@ -54,15 +53,17 @@ service ownership, which is not yet assigned.
 
 That freedom is bounded by rules that apply to every service regardless of language:
 
-1. **Contracts are generated, never hand-written twice.** Every gRPC boundary is defined by a
-   `.proto` file, and every REST boundary the gateway exposes by an OpenAPI document. Clients and
-   servers are generated from those definitions in each language. A contract written by hand in
-   two languages drifts; a generated one cannot.
+1. **Contracts are written once and generated from, never hand-written twice.** Every boundary —
+   the gateway's and every service-to-service call — is defined by an OpenAPI document, and
+   clients and servers are generated from it in each language. A contract written by hand in two
+   languages drifts. With no schema-carrying wire format underneath, the OpenAPI document is the
+   only thing preventing that, so it is authoritative rather than descriptive: it is written
+   before the endpoint, and a contract test on each side proves both still match it.
 2. **Schema definitions live in one place**, versioned with the system, not copied into each
    service. Exactly where is part of the still-open repository-structure decision.
 3. **One observability standard.** Structured JSON logs with a shared field set, and OpenTelemetry
-   traces propagating the same correlation id — carried as a header on HTTP and gRPC and as a
-   message property on the broker. Every mainstream language has an OTel SDK; without this, a
+   traces propagating the same correlation id, carried as an HTTP header on every call. Every
+   mainstream language has an OTel SDK; without this, a
    resume's journey cannot be followed across five services in three languages.
 4. **Every service runs the same way.** A Dockerfile, a health endpoint and a readiness endpoint,
    startup configuration from the environment, and a Kubernetes manifest. The platform must not
@@ -97,9 +98,9 @@ The principle and the guardrails are ready; the choices are not. Before this can
    choice, so nothing can be chosen until ownership exists.
 2. The team confirms it accepts the cost of more than one language, and agrees an upper bound on
    how many.
-3. Each proposed language is checked against the gate in *Assumptions* — a maintained gRPC
-   implementation, an OpenTelemetry SDK, and clients for whichever of PostgreSQL, MongoDB and
-   RabbitMQ that service needs.
+3. Each proposed language is checked against the gate in *Assumptions* — a maintained OpenAPI
+   generator, an OpenTelemetry SDK, and clients for whichever of PostgreSQL and MongoDB that
+   service needs.
 
 Until then, ADR-001's assumption that a single language is used is withdrawn, and no replacement
 is in force.
@@ -121,8 +122,8 @@ Implementation · Team
 - Each of the five services has, or will have, a primary owner among the four members.
 - The team is willing to pay a per-language cost for cross-cutting concerns rather than share one
   internal library.
-- Every language chosen has a maintained gRPC implementation, an OpenTelemetry SDK, and a client
-  for PostgreSQL, MongoDB and RabbitMQ as its service requires. This is true of every mainstream
+- Every language chosen has a maintained OpenAPI code generator, an OpenTelemetry SDK, and a
+  client for PostgreSQL and MongoDB as its service requires. This is true of every mainstream
   candidate, but it is a gate on any unusual one.
 - No more than three languages across the system. This is not a rule, but beyond three the costs
   below stop being manageable for four people.
@@ -131,9 +132,9 @@ Implementation · Team
 
 - Four part-time developers and a fixed deadline. Time spent fighting an unfamiliar toolchain is
   time not spent on the deliverable.
-- Everything must run on a laptop for the demo, alongside PostgreSQL, MongoDB and RabbitMQ.
-- REST, gRPC and a message broker are required of us, so contracts cross language boundaries
-  regardless of this decision.
+- Everything must run on a laptop for the demo, alongside PostgreSQL and MongoDB.
+- Contracts cross language boundaries regardless of this decision, because the services call each
+  other whatever they are written in.
 
 ### Positions
 
@@ -171,9 +172,10 @@ affordable; they are not bureaucracy attached to it.
 
 **For per-service choice (3):** the ecosystem argument is decisive on two services and irrelevant
 on three, which is precisely the shape a per-service decision fits. The contracts that would carry
-the cost of polyglot already exist for other reasons — gRPC on the AI boundary, REST at the
-gateway, RabbitMQ between Hiring and Resume Processing — so the marginal cost is generating
-clients rather than inventing an integration style. And it makes ADR-001's team-structure argument
+the cost of polyglot already exist for other reasons — one REST contract per boundary, gateway and
+internal alike — so the marginal cost is generating clients rather than inventing an integration
+style. It is thinner cover than it looks: a single wire format with no schema in it means the
+OpenAPI document is doing all the work, and rule 1 is load-bearing rather than tidy. And it makes ADR-001's team-structure argument
 true: each member works and learns where they are strongest, which for a course project is part of
 the point rather than a concession.
 
@@ -218,16 +220,17 @@ the point rather than a concession.
 - [ADR-001](ADR-001-service-decomposition.md) — its Assumptions asserted a single backend
   language; that assumption is **withdrawn and replaced by this record**. Its argument for
   decomposition from team structure depends on this decision to be more than decorative, and its
-  choice of gRPC on the AI boundary is what makes generated contracts across languages practical.
-- [ADR-002](ADR-002-async-screening-pipeline.md) — broker message contracts now cross language
-  boundaries, so the message schema and the correlation id must be defined outside any one
-  service.
+  choice of one protocol on every boundary is what keeps the generated-contract cost to a single
+  toolchain per language.
+- [ADR-002](ADR-002-async-screening-pipeline.md) — the screening handover and its result callback
+  now cross language boundaries, so both contracts and the correlation id must be defined outside
+  any one service.
 - [ADR-003](ADR-003-polyglot-persistence.md) — each service already owns its own schema and no
   service reads another's tables, so differing database clients per language cost nothing extra.
 - [ADR-004](ADR-004-llm-access.md) — one service holding the model credential is what allows the
   provider SDK to exist in exactly one language.
-- **Still open, and directly affected:** the repository structure and where the shared `.proto`
-  and OpenAPI definitions live; and the assignment of a primary and secondary owner to each
+- **Still open, and directly affected:** the repository structure and where the shared OpenAPI
+  definitions live; and the assignment of a primary and secondary owner to each
   service, which this decision makes a prerequisite rather than a nicety.
 
 ### Related requirements
@@ -239,8 +242,8 @@ the point rather than a concession.
   implemented in more than one language.
 - **FR-0.3, FR-0.4, FR-0.6, NFR-12** — workspace isolation, role enforcement and the access audit
   log, now implemented in several codebases.
-- REST, gRPC and a message broker are required of us, and this decision requires their contracts
-  to be generated rather than hand-written.
+- A spread of communication styles is expected of us eventually; whatever protocols arrive later,
+  this decision requires their contracts to be generated rather than hand-written.
 
 ### Related artifacts
 
