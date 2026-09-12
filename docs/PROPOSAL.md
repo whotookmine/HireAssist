@@ -202,7 +202,7 @@ The flow it supports end-to-end is:
 | **Guest** | Anyone who has reached HireAssist but has not signed in. Primary actor of UC-0. On signing in they act as a **Recruiter** or an **Admin**, according to the role their account was given — so wherever these documents name a Recruiter or an Admin, that person is already signed in. |
 | **Recruiter** | A signed-in member who runs day-to-day hiring — an HR generalist, a founder, or a tech lead hiring for their own team. Primary actor of UC-1 through UC-4: creates job openings, screens resumes, prepares interview questions, and monitors the pipeline. |
 | **Admin** | The signed-in owner of the installation. Has every Recruiter capability, and additionally configures the data-retention policy (UC-5) and manages members and roles (UC-6). |
-| **Candidate** | *Indirect actor.* Does not log in and has no interface in the system. Supplies the resume, and is the subject of the data processed. An erasure request from them arrives out of band, by email, and an Admin executes it (FR-5.10). |
+| **Candidate** | *Indirect actor.* Does not log in and has no interface in the system. Supplies the resume, and is the subject of the data processed. An erasure request from them arrives out of band, by email, and an Admin executes it (FR-5.7). |
 | **System Scheduler** | *Supporting actor.* Time-driven trigger that runs work no human initiates: staleness checks (UC-4) and retention enforcement (UC-5). |
 
 ---
@@ -688,7 +688,7 @@ serves and numbered `FR-<use case>.<n>` for traceability.
 | UC-2 Batch-screen resumes against a job opening | FR-2.1 – FR-2.12 | 12 |
 | UC-3 Generate candidate-specific interview questions | FR-3.1 – FR-3.5 | 5 |
 | UC-4 Monitor hiring pipeline and stale positions | FR-4.1 – FR-4.4, FR-4.6, FR-4.7 | 6 |
-| UC-5 Enforce candidate data retention | FR-5.1, FR-5.2, FR-5.5 – FR-5.7, FR-5.9 – FR-5.11 | 8 |
+| UC-5 Enforce candidate data retention | FR-5.1, FR-5.2, FR-5.3 – FR-5.5, FR-5.6 – FR-5.8 | 8 |
 | UC-6 Manage members and roles | FR-6.1 | 1 |
 
 The deferred use case D-1 has no functional requirements.

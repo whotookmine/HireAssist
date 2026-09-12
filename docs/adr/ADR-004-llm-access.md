@@ -248,7 +248,7 @@ and let the caller's retry policy absorb its failures.
   protects. Any future re-matching depends on `ScoreProfile` being reusable.
 - **FR-1.2** — criteria derived from free text. **FR-2.5** — score, must-have check and
   justification for every resume. **FR-2.7** — retry, then manual review. **FR-3.1 to FR-3.4** —
-  guide generation and regeneration with a stated emphasis. **FR-5.5** — erasure reaches the cache
+  guide generation and regeneration with a stated emphasis. **FR-5.3** — erasure reaches the cache
   too.
 - **NFR-02, NFR-05** — scoring and guide latency bounds, largely set by the provider rather than
   our code. **NFR-07** — the provider's rate limit as a possible ceiling on the demonstrated

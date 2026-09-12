@@ -254,7 +254,7 @@ in its own right:
 - **NFR-10** — no failure in the batch path may lose accepted work or take the interactive path
   down with it.
 - **NFR-17** — the scoring model and prompt change inside the AI Service alone.
-- **FR-5.5, FR-5.11** — erasure must reach every service holding candidate data, which this
+- **FR-5.3, FR-5.8** — erasure must reach every service holding candidate data, which this
   decomposition turns into a cross-service protocol.
 
 ### Related artifacts

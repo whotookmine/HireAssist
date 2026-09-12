@@ -83,7 +83,10 @@ every one, every time:
 
 **Requirement IDs** (`FR-<uc>.<n>`) are stable once written and never reused. A withdrawn
 requirement is **removed from `docs/FUNCTIONAL-REQUIREMENTS.md` entirely** — not struck through —
-leaving a gap in the sequence. That document states what the system does today; why something was
+leaving a gap in the sequence. The UC-5 block was compacted once, on 2026-09-12, by explicit
+decision while nothing had been submitted; that was a one-off and is not a precedent. Renumbering
+rewrites requirement references inside ADRs, which are point-in-time records — once anything is
+submitted, gaps stay. That document states what the system does today; why something was
 withdrawn belongs in `CHANGELOG.md`, and in the ADR that caused it.
 
 Stale cross-references have been the single most common defect in this repo. After any

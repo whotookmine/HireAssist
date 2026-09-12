@@ -9,6 +9,11 @@ reused**, so a withdrawn requirement leaves a gap in the sequence rather than ca
 renumbering. This document states what the system does today; why a requirement was withdrawn is
 recorded in `../CHANGELOG.md` and, where a decision caused it, in the ADR that made it.
 
+The UC-5 block is the one exception: it was compacted on 2026-09-12, while nothing had been
+submitted, because three withdrawals had left it reading 5.1, 5.2, 5.5–5.7, 5.9–5.11. Every
+reference to it was rewritten in the same change. The stability rule applies from that date
+onward, and the UC-0 and UC-4 gaps are left as they are.
+
 These are referenced from the ADRs and from the Service–Operations–Collaborators table.
 
 **Terms** — *Candidate Profile*, *Screening Batch*, *Talent Pool*, *Retention Policy* and the
@@ -90,12 +95,12 @@ code enforces.
 |---|---|
 | FR-5.1 | The system shall allow an Admin to configure a retention period, an anchor date of either the date the data was collected or the date of last activity, and an expiry action of deletion or anonymisation. |
 | FR-5.2 | The system shall evaluate candidate records against the retention policy on a recurring schedule, flagging those entering the warning window before expiry and notifying the responsible Recruiter with the affected candidates and their expiry date. |
-| FR-5.5 | The system shall, on expiry, delete or anonymise everywhere it is held the candidate's personal data — the candidate profile, the stored resume file, screening results and their justification text, and generated interview guides — according to the configured expiry action, as a single operation that leaves no partially erased record in place. |
-| FR-5.6 | The system shall, when anonymising, remove all identifying data while preserving the aggregate counts used for pipeline metrics, such that no later processing can surface the person. |
-| FR-5.7 | The system shall write an audit entry for each erasure recording what was erased, when, and under which retention policy, excluding from that entry the candidate's name, contact details, resume file and its contents, candidate profile field values, screening scores and justification text; each entry shall reference a candidate only by a pseudonymous internal identifier that cannot be resolved to a person once erasure is complete. |
-| FR-5.9 | The system shall hold expiry for a candidate in an active hiring process and flag the record for the Recruiter to decide. |
-| FR-5.10 | The system shall allow an Admin to execute an erasure for a named candidate immediately, rather than waiting for the next scheduled evaluation. |
-| FR-5.11 | The system shall, where erasure of stored data fails, retain the record, log the failure, retry, and report the record as deletion pending rather than as erased. |
+| FR-5.3 | The system shall, on expiry, delete or anonymise everywhere it is held the candidate's personal data — the candidate profile, the stored resume file, screening results and their justification text, and generated interview guides — according to the configured expiry action, as a single operation that leaves no partially erased record in place. |
+| FR-5.4 | The system shall, when anonymising, remove all identifying data while preserving the aggregate counts used for pipeline metrics, such that no later processing can surface the person. |
+| FR-5.5 | The system shall write an audit entry for each erasure recording what was erased, when, and under which retention policy, excluding from that entry the candidate's name, contact details, resume file and its contents, candidate profile field values, screening scores and justification text; each entry shall reference a candidate only by a pseudonymous internal identifier that cannot be resolved to a person once erasure is complete. |
+| FR-5.6 | The system shall hold expiry for a candidate in an active hiring process and flag the record for the Recruiter to decide. |
+| FR-5.7 | The system shall allow an Admin to execute an erasure for a named candidate immediately, rather than waiting for the next scheduled evaluation. |
+| FR-5.8 | The system shall, where erasure of stored data fails, retain the record, log the failure, retry, and report the record as deletion pending rather than as erased. |
 
 ## UC-6 — Manage members and roles
 

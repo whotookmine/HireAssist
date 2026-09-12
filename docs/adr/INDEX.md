@@ -41,7 +41,7 @@ Identified from the architecturally significant requirements in
 | Decision | Forced by |
 |---|---|
 | Tiered screening pipeline — deterministic filter before the model? | NFR-02, NFR-06, NFR-08 |
-| Erasure cascade — orchestration or choreography, and how the verification pass works across the two stores ADR-003 introduced | FR-5.5, FR-5.11, NFR-13 |
+| Erasure cascade — orchestration or choreography, and how the verification pass works across the two stores ADR-003 introduced | FR-5.3, FR-5.8, NFR-13 |
 | Resume ingestion channel — upload only, or an automated adapter | Open question |
 | Front-end framework and the shape of the recruiter-facing web application | Course requirement (UI for demonstration), NFR-16 |
 | Session and token mechanism for UC-0 | FR-0.1, FR-0.2, FR-0.6 |

@@ -13,7 +13,7 @@ verified, and paired with how that verification is done. IDs are stable once wri
 
 > **PDPA compliance is not stated as a single requirement**, because compliance is not
 > verifiable as one statement. It is the combined effect of NFR-12, NFR-13 and NFR-14 together
-> with the retention requirements FR-5.1 to FR-5.12.
+> with the retention requirements FR-5.1 to FR-5.8.
 
 ---
 
@@ -119,4 +119,4 @@ Each of the following should be answered by an ADR.
 | NFR-13, NFR-14 | Resumes are personal data under the PDPA. May they be sent to a third-party model provider, or must the model be self-hosted? |
 | NFR-07, NFR-10 | What holds a resume between acceptance and its score, how workers scale, and what the delivery guarantee is. Where is the terminal state recorded? |
 | NFR-15, NFR-17 | An explainable score must persist its per-criterion evidence, and the scorer must sit behind a boundary that lets it change alone. Where is that boundary drawn? |
-| FR-5.5 | Erasure must reach every service holding the data. Which component owns that cascade — orchestration or choreography — and how does it stay correct as services are added? |
+| FR-5.3 | Erasure must reach every service holding the data. Which component owns that cascade — orchestration or choreography — and how does it stay correct as services are added? |

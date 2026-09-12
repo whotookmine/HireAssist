@@ -216,8 +216,8 @@ silently makes two services one.
   criteria and the original description. **FR-2.5, FR-2.8, FR-2.9** — score, must-have check,
   override and shortlist decision, all in PostgreSQL so the ranked list never depends on a document
   read. **FR-2.11** — collection date. **FR-3.1** — guides retained. **FR-5.1** — retention policy.
-  **FR-5.5 to FR-5.7** — erasure across both stores and object storage, anonymisation as *drop the
-  documents, keep the counts*, and an audit log that names no one. **FR-5.11** — deletion pending.
+  **FR-5.3 to FR-5.5** — erasure across both stores and object storage, anonymisation as *drop the
+  documents, keep the counts*, and an audit log that names no one. **FR-5.8** — deletion pending.
 - **NFR-03** — ranked list served from PostgreSQL columns within two seconds. **NFR-11** —
   encryption at rest across both stores *and* object storage: three places to configure, not one.
   **NFR-12** — access audit log, append-only. **NFR-13** — the erasure sequence completes within 30
