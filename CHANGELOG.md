@@ -15,6 +15,24 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 18:19 — Dashboard is a query, not a projection; Hiring no longer calls Compliance
+
+- `recordPipelineEvent()` removed. Compliance & Insights builds the dashboard and its staleness
+  check by calling Hiring's new `getPipelineSummary()` on demand, and keeps only the staleness
+  flags it derives. Reverses the push chosen in the 02:20 *REST on every boundary* entry and
+  closes the open decision the table had recorded against it: the push made Compliance a
+  synchronous dependency of Hiring's write path and a lost call a permanently wrong count; every
+  number the dashboard shows is Hiring's, so a query is always correct and costs a call per load.
+- Consequently no service calls Compliance except the gateway (rejected requests) and the
+  Scheduler; Compliance calls out to Hiring and Resume Processing. Diagram, table, ADR-001 and
+  ADR-003 implications, and the architecture page updated together; "pipeline metrics" is no
+  longer something Compliance owns.
+
+**Outstanding:** the three open decisions still listed in the table — erasure orchestration, the
+candidate register in Resume Processing, Hiring's document store — need ADRs.
+
+---
+
 ## 2026-09-12 17:37 — Diagram and architecture page reconciled with the REST-only ADRs and the merged table
 
 - Diagram: the Compliance → Identity arrow is gone — Identity has no collaborators; a rejected

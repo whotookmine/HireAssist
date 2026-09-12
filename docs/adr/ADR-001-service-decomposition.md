@@ -48,7 +48,7 @@ Five services and one gateway, aligned to capabilities:
 | **Hiring Service** | Job openings, criteria, screening batches, decisions, interview guides |
 | **Resume Processing Service** | Candidate profiles, parsed resume text |
 | **AI Service** | Prompts and the model credential — no domain data |
-| **Compliance & Insights Service** | Retention policy, pipeline metrics, audit log |
+| **Compliance & Insights Service** | Retention policy, staleness flags, audit log |
 
 **Every boundary is REST over HTTP/JSON — one protocol, no exceptions.** Client to gateway,
 gateway to service, and service to service all speak the same thing. It is browser-facing and
@@ -201,9 +201,12 @@ on all three will still be in the right place in six months.
 - **Retention must erase data it does not own.** The policy lives in one service, the data in
   two others, so erasure becomes a multi-service protocol with a verification step. "Deleted"
   becomes eventually consistent — precisely what a regulator asks about.
-- **The dashboard cannot be a query.** Metrics span services, so they must be maintained
-  incrementally from domain events. Numbers can lag, and a lost event means a permanently wrong
-  count unless something reconciles.
+- **The dashboard is a cross-service read.** The funnel counts and open dates belong to Hiring,
+  so Compliance & Insights builds the dashboard and its staleness checks by querying Hiring's
+  summary on demand rather than keeping its own copy. The dashboard is only as available as
+  Hiring, and every staleness sweep is a call into Hiring — accepted, because the alternative,
+  Hiring pushing events into Compliance, makes Compliance a dependency of Hiring's write path and
+  loses a count whenever a call fails.
 - **No distributed transactions.** An accepted batch whose messages are never consumed is
   inconsistent state nothing detects on its own; a reconciliation sweep becomes a requirement.
 - **Workspace identity must travel on every internal call.** If only

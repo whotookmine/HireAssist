@@ -7,10 +7,10 @@ and no message broker, so the protocol is not marked per row.
 | Service | Operations | Collaborators |
 |---|---|---|
 | **Identity Service**<br><br>*owns: accounts, memberships,<br>roles, sessions*<br><br>UC-0 · UC-6 | `authenticateMember()`<br>`validateSession()`<br>`getMemberRole()`<br>`createMember()`<br>`removeMember()`<br>`changeMemberRole()` | *(none)* |
-| **Hiring Service**<br><br>*owns: job openings, criteria,<br>screening batches and entry status,<br>scores and overrides, shortlist<br>decisions, interview guides*<br><br>UC-1 · UC-2 · UC-3 | `createJobOpening()`<br>`reviseScreeningCriteria()`<br>`getScreeningCriteria()`<br>`getJobOpening()`<br>`pauseOpening()`<br>`resumeOpening()`<br>`closeOpening()`<br>`submitScreeningBatch()`<br>`getBatchStatus()`<br>`getRankedResults()`<br>`overrideScore()`<br>`shortlistCandidate()`<br>`generateInterviewGuide()`<br>`reviseGuide()`<br>`getInterviewGuide()`<br>`recordInterviewNote()`<br>`reportScreeningResult()`<br>`eraseHiringData()` | **Object Storage Adapter**<br>　`storeResumeFile()`<br>**Resume Processing Service**<br>　`submitResumeForScreening()`<br>　　*(carries the criteria snapshot)*<br>　`getCandidateProfile()`<br>**AI Service**<br>　`deriveCriteriaFromDescription()`<br>　`generateInterviewQuestions()`<br>**Compliance & Insights Service**<br>　`recordPipelineEvent()`<br>**Email Adapter**<br>　`sendEmail()` |
+| **Hiring Service**<br><br>*owns: job openings, criteria,<br>screening batches and entry status,<br>scores and overrides, shortlist<br>decisions, interview guides*<br><br>UC-1 · UC-2 · UC-3 | `createJobOpening()`<br>`reviseScreeningCriteria()`<br>`getScreeningCriteria()`<br>`getJobOpening()`<br>`getPipelineSummary()`<br>`pauseOpening()`<br>`resumeOpening()`<br>`closeOpening()`<br>`submitScreeningBatch()`<br>`getBatchStatus()`<br>`getRankedResults()`<br>`overrideScore()`<br>`shortlistCandidate()`<br>`generateInterviewGuide()`<br>`reviseGuide()`<br>`getInterviewGuide()`<br>`recordInterviewNote()`<br>`reportScreeningResult()`<br>`eraseHiringData()` | **Object Storage Adapter**<br>　`storeResumeFile()`<br>**Resume Processing Service**<br>　`submitResumeForScreening()`<br>　　*(carries the criteria snapshot)*<br>　`getCandidateProfile()`<br>**AI Service**<br>　`deriveCriteriaFromDescription()`<br>　`generateInterviewQuestions()`<br>**Email Adapter**<br>　`sendEmail()` |
 | **Resume Processing Service**<br><br>*owns: candidate identity and<br>collection date, candidate profiles,<br>parsed resume text, scoring output<br>and justifications*<br><br>UC-2 (per-resume work) | `submitResumeForScreening()`<br>`getCandidateProfile()`<br>`listCandidateProfiles()`<br>`listUnparsableResumes()`<br>`eraseCandidateProfile()` | **Object Storage Adapter**<br>　`fetchResumeFile()`<br>**AI Service**<br>　`scoreAgainstCriteria()`<br>**Hiring Service**<br>　`reportScreeningResult()` *(callback)* |
 | **AI Service**<br><br>*owns: prompts and model credentials<br>— no domain data*<br><br>UC-1 · UC-2 · UC-3 | `deriveCriteriaFromDescription()`<br>`scoreAgainstCriteria()`<br>`generateInterviewQuestions()` | **LLM Adapter**<br>　`complete()` |
-| **Compliance & Insights Service**<br><br>*owns: retention policy, pipeline<br>metrics, erasure and access audit logs*<br><br>UC-4 · UC-5 | `setRetentionPolicy()`<br>`evaluateRetention()`<br>`listHeldExpiries()`<br>`resolveHeldExpiry()`<br>`eraseCandidate()`<br>`getErasureAudit()`<br>`getPipelineDashboard()`<br>`evaluateStaleness()`<br>`recordPipelineEvent()`<br>`recordAuthorisationRejected()` | **Hiring Service**<br>　`eraseHiringData()`<br>**Resume Processing Service**<br>　`eraseCandidateProfile()`<br>　`listCandidateProfiles()`<br>**Email Adapter**<br>　`sendEmail()` |
+| **Compliance & Insights Service**<br><br>*owns: retention policy, staleness<br>flags, erasure and access audit logs*<br><br>UC-4 · UC-5 | `setRetentionPolicy()`<br>`evaluateRetention()`<br>`listHeldExpiries()`<br>`resolveHeldExpiry()`<br>`eraseCandidate()`<br>`getErasureAudit()`<br>`getPipelineDashboard()`<br>`evaluateStaleness()`<br>`recordAuthorisationRejected()` | **Hiring Service**<br>　`getPipelineSummary()`<br>　`eraseHiringData()`<br>**Resume Processing Service**<br>　`eraseCandidateProfile()`<br>　`listCandidateProfiles()`<br>**Email Adapter**<br>　`sendEmail()` |
 
 **API Gateway** is the entry point, not a domain service. It terminates TLS, routes, rate-limits,
 resolves the caller's role, and validates the session by calling
@@ -60,10 +60,14 @@ waits on a document read (NFR-03). Only opening an individual candidate does.
 normalised profile in-process, then calls the model only to score it. ADR-004 defines exactly three
 model operations, and none of them is field extraction.
 
-**The dashboard is a projection, not a query.** Compliance & Insights maintains its own view of
-open positions from the `recordPipelineEvent()` calls Hiring makes as things happen, and does not
-call `getJobOpening()` to build it. ADR-001 records that metrics span services and must be
-maintained incrementally.
+**The dashboard is a query, not a projection.** Every number the dashboard shows — applicants,
+screened, shortlisted, the date an opening was opened, whether it is paused — is Hiring's data,
+so Compliance & Insights asks for it through `getPipelineSummary()` when the dashboard is opened
+and when the Scheduler runs `evaluateStaleness()`, and keeps only the staleness flags it derives.
+The alternative — Hiring pushing `recordPipelineEvent()` into Compliance as things happen — was
+rejected: it makes Compliance a synchronous dependency of Hiring's write path, and a call lost in
+transit is a permanently wrong count with no retry. Querying costs a call per dashboard load and
+per sweep, at volumes of a few hundred rows per company, and is always correct.
 
 ## Open decisions this table touches
 
@@ -74,9 +78,6 @@ Recorded here so they are not settled by implementation:
   question — orchestration over choreography — and it needs an ADR before it is built.
 - **The candidate register sits in Resume Processing**, alongside the profile, rather than being
   split from it. Also unrecorded.
-- **Pipeline events are pushed, not published.** With no broker, Hiring calls
-  `recordPipelineEvent()` directly, which makes Compliance a synchronous dependency of Hiring's
-  write path and gives a lost call no retry story. Needs an ADR before it is built.
 - **Interview guides are owned by Hiring but are AI-derived documents.** ADR-003 places such
   documents in MongoDB, which is otherwise Resume Processing's store, so Hiring needs a document
   store of its own.

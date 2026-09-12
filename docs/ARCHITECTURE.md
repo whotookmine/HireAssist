@@ -63,7 +63,7 @@ Compliance & Insights (FR-0.4 — reject and record the rejected attempt).
 | **Hiring Service** | The hiring record: openings and criteria, screening batches and entry status, scores and overrides, shortlist decisions, interview guides | UC-1, UC-2, UC-3 | PostgreSQL — job openings, criteria, batches, scores, decisions; MongoDB — interview guides |
 | **Resume Processing Service** | Turning one resume file into a scored candidate profile, and holding the candidate register | UC-2 (per-resume work) | MongoDB — candidate identity and collection date, candidate profiles, parsed text, scoring output and justifications; PostgreSQL — the screening work table |
 | **AI Service** | Every call to the language model, behind three domain operations | UC-1, UC-2, UC-3 | nothing — prompts and the model credential only |
-| **Compliance & Insights Service** | Retention enforcement, the pipeline dashboard, and the audit logs | UC-4, UC-5 | PostgreSQL — retention policy, pipeline metrics, erasure and access audit logs |
+| **Compliance & Insights Service** | Retention enforcement, the pipeline dashboard, and the audit logs | UC-4, UC-5 | PostgreSQL — retention policy, staleness flags, erasure and access audit logs |
 
 Resume files themselves live in object storage, written by Hiring when a batch is uploaded and
 read by Resume Processing when it works; neither database holds them.
@@ -76,8 +76,8 @@ the data lands.* Operation names are the table's.
 **UC-1 — Create a job opening.** Recruiter → `createJobOpening()` on **Hiring**. Hiring →
 **AI Service** `deriveCriteriaFromDescription()` → LLM Provider. Hiring returns the proposed
 criteria; the Recruiter revises them (`reviseScreeningCriteria()`) and confirms. Hiring stores the
-opening and its criteria in its PostgreSQL and calls **Compliance & Insights**
-`recordPipelineEvent()`, from which the dashboard's view of open positions is maintained.
+opening and its criteria in its PostgreSQL. Nothing else is told: the dashboard reads it later
+through Hiring's `getPipelineSummary()`.
 
 **UC-2 — Batch-screen resumes.** Recruiter → `submitScreeningBatch()` on **Hiring**. Hiring stores
 each PDF in **Object Storage** (`storeResumeFile()`), creates the batch with one pending entry per
@@ -101,8 +101,9 @@ document store; the Recruiter revises it (`reviseGuide()`) and later records not
 (`recordInterviewNote()`).
 
 **UC-4 and UC-5** follow the same pattern from the other side: the **System Scheduler** calls
-**Compliance & Insights** `evaluateStaleness()` and `evaluateRetention()`; the dashboard is a
-projection maintained from the `recordPipelineEvent()` calls Hiring makes; erasure is orchestrated
+**Compliance & Insights** `evaluateStaleness()` and `evaluateRetention()`; the dashboard and the
+staleness check both read Hiring's `getPipelineSummary()` on demand — Compliance keeps no copy of
+Hiring's numbers, only the flags it derives; erasure is orchestrated
 by Compliance calling `eraseHiringData()` on Hiring and `eraseCandidateProfile()` on Resume
 Processing (FR-5.3), with the audit entry written in Compliance's own PostgreSQL (FR-5.5).
 

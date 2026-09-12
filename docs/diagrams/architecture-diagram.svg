@@ -169,7 +169,6 @@
   <line class="call" x1="780" y1="348" x2="780" y2="282"/>
   <line class="call" x1="780" y1="508" x2="780" y2="452"/>
   <polyline class="call" points="720,510 720,478 575,478 575,258 662,258"/>
-  <polyline class="call" points="790,281 790,310 960,310 960,495 805,495 805,519"/>
 
   <line class="call" x1="795" y1="178" x2="983" y2="152"/>
   <polyline class="call" points="793,350 1060,350 1060,202"/>

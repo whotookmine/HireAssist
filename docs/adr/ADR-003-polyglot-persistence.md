@@ -49,7 +49,7 @@ statistics are separable in the first place.
 - candidate identity, the date the data was collected, and the retention anchor date
 - the retention policy; the append-only erasure audit log, which names a candidate only by a
   pseudonymous identifier and holds no personal data; and the access audit log
-- the pipeline counters the dashboard reports from
+- the staleness flags the dashboard highlights
 
 **MongoDB holds what the model derives.** Documents, read whole and replaced whole:
 
@@ -182,9 +182,10 @@ silently makes two services one.
 - **Two stores to back up, monitor, secure and hold credentials for**, and two places a breach can
   happen. The privacy surface is larger than with one store — the honest cost of the anonymisation
   benefit above.
-- **The dashboard cannot join across the split.** Metrics must be maintained in PostgreSQL from
-  services as work completes, not computed on demand. More code, and a lost update is a
-  permanently wrong number until something reconciles it.
+- **The dashboard reads across the service split, not the store split.** Its counts are Hiring's
+  PostgreSQL rows, queried on demand through Hiring's API; nothing joins PostgreSQL to MongoDB.
+  Anonymisation leaves those rows in place with their scores and stages while the person's
+  documents are dropped, which is what keeps the counts after the person is gone.
 - **The split rule has to be enforced by people.** The first time someone puts a decision reason in
   MongoDB "because it was easier", the boundary starts rotting and the anonymisation argument stops
   being true. This is a review responsibility, not an assumption.
