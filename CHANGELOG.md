@@ -15,6 +15,12 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 12:59 — Diagram: no arrow crosses a box
+
+- Hiring's two adapters stacked on its right edge (they sat side by side, and one adapter's arrow ran through the other); the Hiring → AI Service arrow now leaves from the top corner. Cosmetic.
+
+---
+
 ## 2026-09-12 12:57 — Diagram: System Scheduler aligned with Compliance & Insights
 
 - Actor moved level with the service it calls so the arrow is horizontal. Cosmetic.

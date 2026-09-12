@@ -94,12 +94,12 @@
   <text x="730" y="227" class="name">Hiring</text>
   <text x="730" y="244" class="name">Service</text>
   <use href="#db" x="810" y="246"/>
-  <rect x="830" y="288" width="92" height="42" class="adapter"/>
-  <text x="876" y="306" class="small">Object Storage</text>
-  <text x="876" y="320" class="small">Adapter</text>
-  <rect x="930" y="288" width="92" height="42" class="adapter"/>
-  <text x="976" y="306" class="small">Email</text>
-  <text x="976" y="320" class="small">Adapter</text>
+  <rect x="852" y="195" width="92" height="42" class="adapter"/>
+  <text x="898" y="213" class="small">Object Storage</text>
+  <text x="898" y="227" class="small">Adapter</text>
+  <rect x="852" y="243" width="92" height="42" class="adapter"/>
+  <text x="898" y="261" class="small">Email</text>
+  <text x="898" y="275" class="small">Adapter</text>
 
   <!-- Resume Processing Service, cy=400 -->
   <polygon class="hex" points="635,400 687,350 793,350 845,400 793,450 687,450"/>
@@ -171,12 +171,12 @@
   <polyline class="call" points="720,510 720,478 575,478 575,258 662,258"/>
   <line class="call" x1="687" y1="510" x2="549" y2="432"/>
 
-  <line class="call" x1="847" y1="230" x2="983" y2="152"/>
+  <line class="call" x1="795" y1="178" x2="983" y2="152"/>
   <polyline class="call" points="793,350 1060,350 1060,202"/>
 
   <line class="call" x1="1295" y1="150" x2="1318" y2="150"/>
-  <line class="call" x1="922" y1="309" x2="1318" y2="385"/>
-  <line class="call" x1="1022" y1="309" x2="1318" y2="545"/>
+  <line class="call" x1="945" y1="216" x2="1318" y2="385"/>
+  <line class="call" x1="945" y1="264" x2="1318" y2="545"/>
   <line class="call" x1="944" y1="400" x2="1318" y2="395"/>
   <line class="call" x1="944" y1="560" x2="1318" y2="555"/>
 
