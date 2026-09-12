@@ -40,7 +40,7 @@ boxes and arrows in the file directly and commit it — there is no separate sou
 
 | Actor | Initiates | Reaches the system through |
 |---|---|---|
-| **Recruiter** | UC-1, UC-2, UC-3, UC-4 | the Recruiter Web UI → API Gateway |
+| **Recruiter** | UC-1, UC-2, UC-3, UC-4 | the HireAssist Web UI → API Gateway |
 | **Admin** | everything a Recruiter can, plus UC-5 (retention policy) and UC-6 (members and roles) | the same UI — Admin specialises Recruiter |
 | **System Scheduler** | UC-4 staleness checks and UC-5 retention evaluation, on a timer | calls Compliance & Insights directly; no UI |
 | *Candidate* | nothing — an indirect actor with no interface | their resume arrives as a file the Recruiter uploads; not drawn |

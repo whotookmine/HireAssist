@@ -67,7 +67,7 @@
 
   <!-- ── Web UI and API Gateway ────────────────────────────────────────────── -->
   <polygon class="hexEdge" points="195,305 232,255 308,255 345,305 308,355 232,355"/>
-  <text x="270" y="301" class="name">Recruiter</text>
+  <text x="270" y="301" class="name">HireAssist</text>
   <text x="270" y="318" class="name">Web UI</text>
 
   <polygon class="hexEdge" points="385,305 422,255 498,255 535,305 498,355 422,355"/>

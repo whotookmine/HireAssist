@@ -15,6 +15,13 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 12:36 — Web UI renamed
+
+- *Recruiter Web UI* → **HireAssist Web UI** on the architecture diagram and page: it is the one
+  web application for every signed-in role, not a Recruiter-only screen.
+
+---
+
 ## 2026-09-12 12:25 — Version 1 diagram shows REST for every call
 
 - The course's guidance for the first version is REST throughout and no message broker yet, so
