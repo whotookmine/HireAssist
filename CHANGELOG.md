@@ -15,6 +15,28 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 11:40 — Architecture diagram, version 1
+
+- **`docs/ARCHITECTURE.md` and `docs/diagrams/architecture-diagram.{puml,svg}`** — the diagram half of
+  the *Microservice Design with Collaborations* deliverable, drawn to ADR-001…006 and to the
+  operations in the Service–Operations–Collaborators table (PR #4). Arrows follow the course
+  convention (A → B means A calls B; no response arrows); the page traces UC-1, UC-2 and UC-3
+  actor → operation → service → collaborator → store.
+- Drawn from the accepted decisions where the table still lags them: *Identity Service* not
+  *Identity & Workspace*, no workspace at the gateway (ADR-006), and no consent operations — consent
+  is not stored (23:34 entry). The table needs the same fixes before submission.
+- **No external OCR provider drawn.** The table lists a *Document Parsing / OCR Provider*; ADR-002
+  sends a scanned image to manual review as a permanent failure, and a second processor of resume
+  data would need its own decision. Parked in `CONTEXT.md`.
+- RabbitMQ stays in version 1 although the course allows REST-only: it is the decided UC-2 design
+  (ADR-002), not decoration — the page says why.
+- `README.md` links the new page.
+
+**Outstanding:** bring the table in line with ADR-006 and the consent change; decide the OCR
+question; service ownership and the erasure verification pass are still open.
+
+---
+
 ## 2026-09-12 00:41 — Candidate record ownership parked as an open question
 
 - FR-2.11 adds candidates to a "talent pool" that no service owns, and the pool is a view rather

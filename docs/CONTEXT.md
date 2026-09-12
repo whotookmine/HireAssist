@@ -55,6 +55,12 @@ and the Service–Operations–Collaborators table are produced.
       identity plus collection date, the anchor retention runs on) is named in no service.
       Resume Processing already owns the parsed profile, so splitting identity from profile would
       create a dual write across services. Parked 2026-09-12.
+- [ ] **Resume text extraction — a library inside Resume Processing, or an external OCR
+      provider?** The Service–Operations–Collaborators table (PR #4) lists a *Document Parsing /
+      OCR Provider* as an external system; ADR-002 treats a scanned image with no text layer as a
+      permanent failure sent to manual review, and an external provider would be a second processor
+      of resume data needing the same terms check as the model provider (ADR-004). The architecture
+      diagram draws extraction as internal until this is decided. Parked 2026-09-12.
 - [ ] **Resume ingestion channel.** Batch upload is confirmed in UC-2. Is an automated channel
       (IMAP/webhook) in scope, or a stated future extension? *(Currently unresolved — the
       proposal's positioning says "plugs into existing channels" while UC-2 is upload-only.)*
