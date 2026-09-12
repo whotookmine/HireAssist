@@ -9,10 +9,11 @@ reused**, so a withdrawn requirement leaves a gap in the sequence rather than ca
 renumbering. This document states what the system does today; why a requirement was withdrawn is
 recorded in `../CHANGELOG.md` and, where a decision caused it, in the ADR that made it.
 
-The UC-5 block is the one exception: it was compacted on 2026-09-12, while nothing had been
-submitted, because three withdrawals had left it reading 5.1, 5.2, 5.5–5.7, 5.9–5.11. Every
-reference to it was rewritten in the same change. The stability rule applies from that date
-onward, and the UC-0 and UC-4 gaps are left as they are.
+**One exception has already been taken.** On 2026-09-12, while nothing had been submitted, every
+block was compacted so that no gaps remained — withdrawals in UC-0, UC-4 and UC-5 had left the
+sequence reading 0.1–0.2, 0.4, 0.6 · 4.1–4.4, 4.6–4.7 · 5.1–5.2, 5.5–5.7, 5.9–5.11. Every
+reference was rewritten in the same change. The stability rule applies from that date onward: a
+requirement withdrawn from here on leaves a gap and the gap stays.
 
 These are referenced from the ADRs and from the Service–Operations–Collaborators table.
 
@@ -35,8 +36,8 @@ code enforces.
 |---|---|
 | FR-0.1 | The system shall authenticate a Guest by email address and password, and issue a session token identifying the user and their role, under which the user acts as a Recruiter or an Admin. |
 | FR-0.2 | The system shall reject any request presenting a missing, invalid, or expired session token. |
-| FR-0.4 | The system shall support two roles, Admin and Recruiter, where Admin holds all Recruiter permissions in addition to its own. |
-| FR-0.6 | The system shall reject any request requiring a role higher than the requester's assigned role, and record the rejected attempt. |
+| FR-0.3 | The system shall support two roles, Admin and Recruiter, where Admin holds all Recruiter permissions in addition to its own. |
+| FR-0.4 | The system shall reject any request requiring a role higher than the requester's assigned role, and record the rejected attempt. |
 
 ## UC-1 — Create a job opening from natural-language requirements
 
@@ -86,8 +87,8 @@ code enforces.
 | FR-4.2 | The system shall evaluate every open job opening against its staleness rule on a recurring schedule, independently of whether any user views the dashboard. |
 | FR-4.3 | The system shall flag a job opening that has been open longer than its expected time-to-fill. |
 | FR-4.4 | The system shall notify the Recruiter responsible for a job opening when that opening is flagged. |
-| FR-4.6 | The system shall clear a flag when the job opening is closed, or when the flagged condition is resolved. |
-| FR-4.7 | The system shall exclude a paused job opening from staleness evaluation. |
+| FR-4.5 | The system shall clear a flag when the job opening is closed, or when the flagged condition is resolved. |
+| FR-4.6 | The system shall exclude a paused job opening from staleness evaluation. |
 
 ## UC-5 — Enforce candidate data retention
 

@@ -247,8 +247,8 @@ in its own right:
   with authorisation at the gateway; **job creation, screening and interview questions**
   (UC-1–UC-3) by Hiring, Resume Processing and the AI Service; **pipeline monitoring and
   retention** (UC-4, UC-5) by Compliance & Insights.
-- **FR-0.3, FR-0.6** — workspace scoping and role enforcement, bound to the request at the
-  gateway.
+- **Workspace scoping** — a requirement since withdrawn — and **FR-0.4**, role enforcement, both
+  bound to the request at the gateway.
 - **NFR-04, NFR-07** — a batch is acknowledged in seconds while screening scales by adding
   replicas; the second is the demonstrated quality attribute.
 - **NFR-10** — no failure in the batch path may lose accepted work or take the interactive path

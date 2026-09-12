@@ -44,7 +44,7 @@ Identified from the architecturally significant requirements in
 | Erasure cascade — orchestration or choreography, and how the verification pass works across the two stores ADR-003 introduced | FR-5.3, FR-5.8, NFR-13 |
 | Resume ingestion channel — upload only, or an automated adapter | Open question |
 | Front-end framework and the shape of the recruiter-facing web application | Course requirement (UI for demonstration), NFR-16 |
-| Session and token mechanism for UC-0 | FR-0.1, FR-0.2, FR-0.6 |
+| Session and token mechanism for UC-0 | FR-0.1, FR-0.2, FR-0.4 |
 | Deployment and upgrade pipeline for N customer instances | ADR-006 |
 | Scheduler shared by UC-4 and UC-5 — where the timer runs, behaviour with more than one replica, resuming a sweep that dies half-way | FR-4.2, FR-5.2 |
 | Repository structure once implementation starts — monorepo layout, and where the shared OpenAPI definitions live | Open question, ADR-005 |

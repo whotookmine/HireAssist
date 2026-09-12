@@ -683,11 +683,11 @@ serves and numbered `FR-<use case>.<n>` for traceability.
 
 | Use case | Requirements | Count |
 |---|---|---|
-| UC-0 Sign in | FR-0.1, FR-0.2, FR-0.4, FR-0.6 | 4 |
+| UC-0 Sign in | FR-0.1, FR-0.2, FR-0.3, FR-0.4 | 4 |
 | UC-1 Create a job opening from natural-language requirements | FR-1.1 – FR-1.8 | 8 |
 | UC-2 Batch-screen resumes against a job opening | FR-2.1 – FR-2.12 | 12 |
 | UC-3 Generate candidate-specific interview questions | FR-3.1 – FR-3.5 | 5 |
-| UC-4 Monitor hiring pipeline and stale positions | FR-4.1 – FR-4.4, FR-4.6, FR-4.7 | 6 |
+| UC-4 Monitor hiring pipeline and stale positions | FR-4.1 – FR-4.4, FR-4.5, FR-4.6 | 6 |
 | UC-5 Enforce candidate data retention | FR-5.1, FR-5.2, FR-5.3 – FR-5.5, FR-5.6 – FR-5.8 | 8 |
 | UC-6 Manage members and roles | FR-6.1 | 1 |
 

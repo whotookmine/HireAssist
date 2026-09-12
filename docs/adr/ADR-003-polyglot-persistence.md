@@ -212,7 +212,7 @@ silently makes two services one.
   (openings and criteria), **screening** (batches, profiles, scores, justifications, overrides,
   decisions), **interview questions** (guides), **pipeline monitoring** (counters) and
   **retention** (policy, audit log, both expiry actions) all map onto the split above.
-- **FR-0.4, FR-0.6** — roles as a foreign key, not a convention. **FR-1.7** — the opening, its
+- **FR-0.3, FR-0.4** — roles as a foreign key, not a convention. **FR-1.7** — the opening, its
   criteria and the original description. **FR-2.5, FR-2.8, FR-2.9** — score, must-have check,
   override and shortlist decision, all in PostgreSQL so the ranked list never depends on a document
   read. **FR-2.11** — collection date. **FR-3.1** — guides retained. **FR-5.1** — retention policy.

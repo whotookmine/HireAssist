@@ -52,7 +52,8 @@ Consequently:
 - **Isolation between companies is a property of deployment, not of code.** No query filter, no
   row-level policy, and no per-call tenant check stands between one company's data and another's,
   because the other company's data is not in the database.
-- **FR-0.3 is withdrawn.** It required data access to be scoped to the workspace in the session.
+- **The workspace-scoping requirement is withdrawn.** It required data access to be scoped to the
+  workspace in the session.
   There is nothing left for it to scope.
 - **Configuration that was per workspace is now per deployment** — the retention policy (FR-5.1)
   most of all.
@@ -186,7 +187,7 @@ instances is smaller than the engineering cost of the guarantee it replaces.
 ### Related requirements
 
 - **FR-0.1** — the session identifies a user and a role, not a company.
-- **~~FR-0.3~~** — withdrawn by this decision.
+- **Workspace scoping** — the requirement is withdrawn by this decision.
 - **FR-5.1** — retention policy is per deployment.
 - **NFR-12** — the access audit log remains, per deployment.
 - **NFR-09** — availability is now per customer instance: a smaller blast radius, and N things to

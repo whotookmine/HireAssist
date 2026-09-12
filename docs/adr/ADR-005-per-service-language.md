@@ -240,8 +240,8 @@ the point rather than a concession.
 - **NFR-01, FR-2.3** — resume parsing, the other ecosystem-driven choice.
 - **NFR-10** — no accepted resume lost, which depends on retry and acknowledgement behaviour now
   implemented in more than one language.
-- **FR-0.3, FR-0.4, FR-0.6, NFR-12** — workspace isolation, role enforcement and the access audit
-  log, now implemented in several codebases.
+- **FR-0.3, FR-0.4, NFR-12** — role enforcement and the access audit log, plus workspace
+  isolation while it stood, now implemented in several codebases.
 - A spread of communication styles is expected of us eventually; whatever protocols arrive later,
   this decision requires their contracts to be generated rather than hand-written.
 
