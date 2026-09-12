@@ -35,7 +35,7 @@ Term project for **Software Architecture**, Chulalongkorn University.
 | [docs/FUNCTIONAL-REQUIREMENTS.md](docs/FUNCTIONAL-REQUIREMENTS.md) | 44 functional requirements, traced to the use case each serves. |
 | [docs/NON-FUNCTIONAL-REQUIREMENTS.md](docs/NON-FUNCTIONAL-REQUIREMENTS.md) | 17 non-functional requirements, grouped by quality attribute. |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture diagram (version 1) with the three business use cases traced through the services. |
-| [docs/diagrams/](docs/diagrams/) | Diagrams as code (PlantUML) with their rendered SVGs — the use case diagram and the architecture diagram. |
+| [docs/diagrams/](docs/diagrams/) | Diagrams as code — the use case diagram (PlantUML source + rendered SVG) and the architecture diagram (hand-laid SVG). |
 | [docs/CONTEXT.md](docs/CONTEXT.md) | Internal working notes — open questions, open decisions, glossary. Not for submission. |
 | [docs/adr/](docs/adr/) | Architecture Decision Records, one decision per file, with an index. |
 | [docs/course/ASSIGNMENT.md](docs/course/ASSIGNMENT.md) | The assignment brief and submission guideline this proposal is written against. |

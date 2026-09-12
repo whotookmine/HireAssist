@@ -15,6 +15,16 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-09-12 11:55 — Architecture diagram redrawn by hand in the FTGO style
+
+- `docs/diagrams/architecture-diagram.svg` is now a hand-laid SVG shaped like the course's FTGO
+  example — hexagon services with API tabs, private stores inside them, adapters on the edge,
+  external systems in a dashed box, actors on the left. Graphviz could not produce that shape, so
+  the PlantUML source was dropped; the SVG is the source and is edited directly.
+- Content unchanged from 11:40: same services, stores, calls and event names.
+
+---
+
 ## 2026-09-12 11:40 — Architecture diagram, version 1
 
 - **`docs/ARCHITECTURE.md` and `docs/diagrams/architecture-diagram.{puml,svg}`** — the diagram half of

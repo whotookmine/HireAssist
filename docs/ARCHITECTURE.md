@@ -12,9 +12,9 @@ interview questions.
 
 ![HireAssist architecture diagram](diagrams/architecture-diagram.svg)
 
-*The diagram is maintained as code in
-**[diagrams/architecture-diagram.puml](diagrams/architecture-diagram.puml)** (PlantUML). The image
-above is rendered from that file; edit the source and re-render rather than editing the image.*
+*The diagram is a hand-laid SVG, **[diagrams/architecture-diagram.svg](diagrams/architecture-diagram.svg)**,
+drawn in the style of the FTGO example used in the course. It is plain text: edit the labels,
+boxes and arrows in the file directly and commit it — there is no separate source to re-render.*
 
 ---
 
