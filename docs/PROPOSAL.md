@@ -569,7 +569,7 @@ the permissions of their role.
 
 ### Use Case Diagram
 
-![HireAssist use case diagram](diagrams/use-case-diagram.svg)
+![HireAssist use case diagram](diagrams/use-case-diagram.png)
 
 *The diagram is maintained as code in
 **[diagrams/use-case-diagram.puml](diagrams/use-case-diagram.puml)** (PlantUML, standard UML use

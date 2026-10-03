@@ -10,11 +10,12 @@ what it must already do is show every component the three core business use case
 create a job opening, **UC-2** batch-screen resumes, **UC-3** generate interview questions — and
 the collaborations between them.
 
-![HireAssist architecture diagram](diagrams/architecture-diagram.svg)
+![HireAssist architecture diagram](diagrams/sw-arch.drawio.png)
 
-*The diagram is a hand-laid SVG, **[diagrams/architecture-diagram.svg](diagrams/architecture-diagram.svg)**,
-drawn in the style of the FTGO example used in the course. It is plain text: edit the labels,
-boxes and arrows in the file directly and commit it — there is no separate source to re-render.*
+*Drawn in draw.io. The `.drawio` source is kept outside this repository, so the PNG here cannot
+be edited in place — change the source and export over it. This page and the
+[Service–Operations–Collaborators table](SERVICE-OPERATIONS-COLLABORATORS.md) must agree with
+what it shows.*
 
 ---
 
@@ -28,10 +29,17 @@ boxes and arrows in the file directly and commit it — there is no separate sou
 - **Arrows are not labelled with operations** — the table lists them. **Every arrow is REST over
   HTTP/JSON except the two into the AI Service, which are gRPC** (ADR-001, ADR-007). There is no
   message broker anywhere in the picture.
-- **External systems** sit on the right, inside the dashed box. Each is reached through an adapter
-  in the service that calls it, so no domain logic depends on a provider's API directly.
-- **One deployment serves one customer company** (ADR-006), so everything outside that dashed box
-  is one company's instance and there is no tenant identity anywhere inside it.
+- **An adapter box beside a service stands for an external system**, and for the fact that the
+  service reaches it only through that adapter — object storage, the model provider, the email
+  provider. The providers themselves are not drawn; the point the picture makes is that no
+  domain logic touches a provider's API directly. The Service–Operations–Collaborators table
+  names them.
+- **The Scheduler is a trigger, not a service.** It is drawn because it is the only caller that
+  does not arrive through the gateway, and because the erasure arrows out of Compliance &
+  Insights would otherwise appear to fire from nowhere. How the timer is actually run is an open
+  decision.
+- **One deployment serves one customer company** (ADR-006), so everything in the picture is one
+  company's instance and there is no tenant identity anywhere inside it.
 
 ## Actors
 

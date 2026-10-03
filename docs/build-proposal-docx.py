@@ -16,8 +16,6 @@ would be editing it in the wrong place.
 """
 import pathlib
 import re
-import subprocess
-import tempfile
 import os
 
 from docx import Document
@@ -30,7 +28,7 @@ REPO = "/Users/patiphonpuntusin/Time/Chula/sw-arch/hire-assist"
 OUT = os.path.join(REPO, "docs", "HireAssist-Proposal.docx")
 FR_SRC = os.path.join(REPO, "docs", "FUNCTIONAL-REQUIREMENTS.md")
 NFR_SRC = os.path.join(REPO, "docs", "NON-FUNCTIONAL-REQUIREMENTS.md")
-UC_SVG = os.path.join(REPO, "docs", "diagrams", "use-case-diagram.svg")
+UC_DIAGRAM = os.path.join(REPO, "docs", "diagrams", "use-case-diagram.png")
 PROPOSAL = os.path.join(REPO, "docs", "PROPOSAL.md")
 
 INK = RGBColor(0x1A, 0x1A, 0x1A)
@@ -287,22 +285,24 @@ def uc_block(doc, title, actor, goal, steps):
     return p
 
 
-def diagram(doc, svg_path, width_in):
-    """Render the SVG to PNG and place it. Word will not take an SVG from
-    python-docx, and the .puml source is the thing actually maintained, so the
-    image is generated at build time rather than kept as a committed PNG."""
-    png = os.path.join(tempfile.mkdtemp(), "diagram.png")
-    try:
-        subprocess.run(["rsvg-convert", "-w", "2000", svg_path, "-o", png],
-                       check=True, capture_output=True)
-    except (OSError, subprocess.CalledProcessError) as exc:
-        print(f"  ! diagram skipped ({exc}); install librsvg for `rsvg-convert`")
-        return None
+def diagram(doc, image_path, width_in):
+    """Place the rendered diagram.
+
+    A missing image raises rather than warning. An earlier version skipped it
+    with a printed warning, and when the diagram was switched from SVG to PNG
+    the export silently shipped without a use case diagram at all — the kind
+    of failure nobody sees until a marker opens the file.
+    """
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(
+            f"{image_path} is missing. Re-render it with "
+            "`plantuml -tpng docs/diagrams/use-case-diagram.puml`."
+        )
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_before = Pt(4)
     p.paragraph_format.space_after = Pt(2)
-    p.add_run().add_picture(png, width=Inches(width_in))
+    p.add_run().add_picture(image_path, width=Inches(width_in))
     return p
 
 
@@ -528,7 +528,7 @@ table(doc,
       [1.25, 5.45])
 
 subhead(doc, "Use case diagram", before=12)
-diagram(doc, UC_SVG, 6.0)
+diagram(doc, UC_DIAGRAM, 6.0)
 para(doc, "UML use case diagram; PlantUML source at diagrams/use-case-diagram.puml.",
      size=8.5, italic=True, color=MUTED, align=WD_ALIGN_PARAGRAPH.CENTER, after=6)
 

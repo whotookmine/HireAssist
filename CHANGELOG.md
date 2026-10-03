@@ -15,6 +15,30 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-10-03 — New architecture diagram; references repointed from SVG to PNG
+
+- **The architecture diagram is back in the repo** as `diagrams/sw-arch.drawio.png`, drawn in
+  draw.io with the source kept outside it. Checked edge by edge against the
+  Service–Operations–Collaborators table: all seventeen collaborations present, correctly
+  directed, no extras. It gained the Scheduler, Hiring's email adapter and the
+  `reportScreeningResult()` callback after a first pass found those three missing.
+- `ARCHITECTURE.md` no longer describes a dashed external-systems box the new drawing does not
+  have. An adapter box now stands for the external system behind it, and the Scheduler is
+  explained — it is drawn because it is the only caller that bypasses the gateway, and without
+  it the erasure arrows out of Compliance appear to fire from nowhere.
+- **The use case diagram moved from SVG to PNG and four references were left pointing at the
+  deleted file** — `PROPOSAL.md`, the `.puml` header, and two places in `CLAUDE.md`. The Word
+  export was the costly one: it rendered the proposal from the SVG, so it silently shipped with
+  no use case diagram and only a warning that scrolled past. It now embeds the PNG directly and
+  **raises** when the image is missing, because a build that quietly drops a figure is worse
+  than one that stops.
+
+- **The superseded `diagrams/architecture-diagram.svg` is deleted.** Nothing referenced it once
+  the new drawing landed, and a second architecture diagram in the repo is a second thing that
+  can be mistaken for current. It remains in Git history.
+
+Outstanding: the diagram labels the trigger *Scheduler* while every document calls it the
+*System Scheduler*.
 ## 2026-10-02 20:23 — README lists the Identity Service
 
 - `services/identity/` added to the README's documentation table beside the AI Service, the
