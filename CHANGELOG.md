@@ -39,6 +39,10 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 Outstanding: the diagram labels the trigger *Scheduler* while every document calls it the
 *System Scheduler*.
+## 2026-10-02 20:23 — README lists the Identity Service
+
+- `services/identity/` added to the README's documentation table beside the AI Service, the
+  pattern that service set, so a reader finds every implemented service in one place.
 
 ---
 
@@ -102,6 +106,64 @@ six empty `---` separators and out-of-order entries are still there.
 
 Outstanding: the proposal's remaining sections are not in the export; the changelog has six empty
 `---` separators around line 96 and its newest entries are not all at the top.
+
+---
+
+## 2026-09-24 22:36 — ADR-009 proposed; *Member* confirmed as the Identity term
+
+- **ADR-009**, *Proposed*, answers the open candidate "session and token mechanism for UC-0": a
+  15-minute signed access token verified by the gateway and by any service acting on the role, and
+  an 8-hour session held as single-use refresh tokens in Identity. Chosen by the Identity Service
+  owner to take Identity off the path of every request and to give the role a verifiable way to
+  reach the services; the cost, a removed member keeping access for up to 15 minutes, is argued in
+  the ADR.
+- The public key reaches verifiers as configuration rather than from a key endpoint, so no
+  service calls Identity to check a token and the gateway stays its only caller; rotating the key
+  becomes a configuration change, accepted because it is rare.
+- Proposed rather than accepted because it asks the gateway and the other services to verify
+  tokens themselves, and their owners have not agreed yet. INDEX row added; no earlier ADR edited.
+  Drafted as ADR-008 and renumbered before it was committed, because the profile-extraction record
+  took that number first on main.
+- **Deliberately not updated until the team agrees:** OVERVIEW, the SOC table and ARCHITECTURE.md,
+  which show the gateway calling `validateSession()` on every request; UC-0 alternate flow 4a,
+  since an expired access token no longer ends the session; the INDEX candidate list and its
+  ADR-005 row; and the open session decision in CONTEXT.md.
+- **Member** added to the glossary as the term for a person with credentials and one role;
+  *account* and *membership*, which named the same thing, are dropped from UC-6, FR-6.1 and the SOC
+  Identity row. *User* was tried first and dropped: it meant renaming UC-6 and the Identity
+  operations across documents the team shares, and the documents already use *user* in its
+  everyday sense. A blank line that split the glossary table was also removed.
+- **Removing a member deactivates it rather than deleting it** (new FR-6.2, a sentence in UC-6,
+  the glossary). The access audit log must name whoever reached candidate data for a year (NFR-12)
+  and every decision must trace to an identified person; a deleted row would leave both pointing
+  at nobody.
+- **The last active Admin cannot be removed or demoted** (new FR-6.3, UC-6 alternate flow 3a),
+  because nothing inside the product can create an Admin again. Answers the open question in
+  CONTEXT.md, which is removed along with the one on how a new member gets a password — FR-6.1
+  already answers it.
+- **An Admin can set a new password for a member** (new FR-6.4, UC-6, `setMemberPassword()` in
+  the SOC Identity row), ending that member's sessions. Without it a forgotten password meant
+  removing and re-adding the member, splitting their history across two identities; it is not a
+  self-service reset, so UC-0's "no password-reset flow" still holds. Email stays unchangeable for
+  now.
+- **A password an Admin sets is a Temporary Password** that cannot start a session until the
+  member replaces it (new FR-0.5, UC-0 alternate flow 1b, `changePassword()` in the SOC Identity
+  row, glossary term; *initial password* replaced by *temporary password* in UC-6, FR-6.1 and
+  FR-6.4). Otherwise the Admin, and anyone who read the message carrying it, could act as that
+  member and the audit log would name the wrong person. FR-0.5 is free: the earlier one was
+  withdrawn before the 2026-09-12 renumbering and nothing references it.
+- **Reading members** (new FR-6.5, UC-6 step 1): `listMembers()` shows an Admin the active members;
+  `getMember()` replaces `getMemberRole()`, which nobody needs once the role travels in the token,
+  and still returns a removed member so history can name them (FR-6.2). Both are Admin-only until a
+  screen needs to show Recruiters other members. Proposal total now 49 requirements.
+
+Outstanding: team agreement on ADR-009, then the documents above; OVERVIEW and ARCHITECTURE still
+call Identity's store accounts and memberships; README, CONTEXT's Requirements section and
+ASSIGNMENT.md still count 44 requirements, not 49; OVERVIEW's UC-0 and UC-6 flows do not list
+`changePassword()` or `setMemberPassword()`; the web application needs a screen for replacing a
+temporary password; how long a removed member's email is kept is open. Parked for a team
+discussion: how calls made without a user — the scheduler, erasure, the screening callback — prove
+they come from our own services, which ADR-009 does not cover.
 
 ---
 

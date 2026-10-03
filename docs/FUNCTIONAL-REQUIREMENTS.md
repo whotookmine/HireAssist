@@ -38,6 +38,7 @@ code enforces.
 | FR-0.2 | The system shall reject any request presenting a missing, invalid, or expired session token. |
 | FR-0.3 | The system shall support two roles, Admin and Recruiter, where Admin holds all Recruiter permissions in addition to its own. |
 | FR-0.4 | The system shall reject any request requiring a role higher than the requester's assigned role, and record the rejected attempt. |
+| FR-0.5 | The system shall allow a member to replace their password by presenting the current one, and shall require this before starting a session with a temporary password. |
 
 ## UC-1 — Create a job opening from natural-language requirements
 
@@ -107,8 +108,12 @@ code enforces.
 
 | ID | Requirement |
 |---|---|
-| FR-6.1 | The system shall allow an Admin to create a member account with an initial password, remove a member, and change a member's role. |
+| FR-6.1 | The system shall allow an Admin to create a member with a temporary password, remove a member, and change a member's role. |
+| FR-6.2 | The system shall prevent a removed member from signing in, and shall retain the removed member's identity so that the audit log and other records of their past actions still identify them. |
+| FR-6.3 | The system shall refuse to remove a member or change a member's role when doing so would leave no active Admin. |
+| FR-6.4 | The system shall allow an Admin to set a new temporary password for a member, and shall end that member's existing sessions when it does. |
+| FR-6.5 | The system shall show an Admin the list of active members with their roles. |
 
 ---
 
-**44 requirements** — UC-0: 4 · UC-1: 8 · UC-2: 12 · UC-3: 5 · UC-4: 6 · UC-5: 8 · UC-6: 1.
+**49 requirements** — UC-0: 5 · UC-1: 8 · UC-2: 12 · UC-3: 5 · UC-4: 6 · UC-5: 8 · UC-6: 5.

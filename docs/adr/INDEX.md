@@ -21,6 +21,7 @@ The course requires **at least 3 ADRs** as part of the project proposal submissi
 | [ADR-006](ADR-006-single-tenant-deployment.md) | One deployment per customer company | Accepted | 2026-09-11 |
 | [ADR-007](ADR-007-grpc-for-the-ai-service.md) | gRPC on the AI Service boundary | Accepted | 2026-09-20 |
 | [ADR-008](ADR-008-profile-extraction-is-a-model-call.md) | Turning a resume into a candidate profile is a model call | Accepted | 2026-10-01 |
+| [ADR-009](ADR-009-jwt-with-refresh-tokens.md) | Short-lived JWT access tokens with rotating refresh tokens | **Proposed** | 2026-09-24 |
 
 The four are best read in order: ADR-001 draws the boundaries, ADR-002 fills in the busiest one,
 ADR-003 says what each side stores, and ADR-004 fills in the dependency the others are built to

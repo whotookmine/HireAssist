@@ -1,0 +1,452 @@
+{
+  "info": {
+    "name": "HireAssist Identity Service",
+    "description": "Member CRUD for the HireAssist Identity Service (Go + PostgreSQL).\n\nStart the database and the service (`make db-up`, `make run`), run `make db-reset`, keep `make db-watch` open beside Postman, then send 01 to 12 in order. Request 02 stores the new member's id in the collection variable `memberId`, which 05 to 09 use.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 READ ALL — active members",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/members",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members"
+          ]
+        },
+        "description": "Expect **200** and the two demo members, Nok (admin) and Somchai (recruiter). Run `make db-reset` before recording."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "pm.test('two demo members', () => pm.expect(pm.response.json().length).to.eql(2));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 CREATE — Ploy, recruiter",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/members",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members"
+          ]
+        },
+        "description": "Expect **201** and a `Location` header. The email is stored lower-cased and `temporary_password` is true: Ploy must replace it on first sign-in. Watch the table gain a row.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"Ploy@Acme.example\",\n  \"password\": \"welcome-to-hireassist\",\n  \"role\": \"recruiter\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 201', () => pm.response.to.have.status(201));",
+              "const created = pm.response.json();",
+              "pm.test('Location points at the new member', () => pm.expect(pm.response.headers.get('Location')).to.eql('/members/' + created.id));",
+              "pm.test('email stored lower-case', () => pm.expect(created.email).to.eql('ploy@acme.example'));",
+              "pm.test('password is temporary', () => pm.expect(created.temporary_password).to.eql(true));",
+              "pm.collectionVariables.set('memberId', created.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 CREATE — invalid input",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/members",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members"
+          ]
+        },
+        "description": "Expect **400** listing all three problems at once. The table does not change.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"short\",\n  \"role\": \"manager\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 400', () => pm.response.to.have.status(400));",
+              "pm.test('three problems listed', () => pm.expect(pm.response.json().details.length).to.eql(3));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 CREATE — same email again",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/members",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members"
+          ]
+        },
+        "description": "Expect **409**: an active member already has this email, whatever the capitals.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"ploy@acme.example\",\n  \"password\": \"another-long-password\",\n  \"role\": \"recruiter\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 409', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 READ ONE — Ploy",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/members/{{memberId}}",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members",
+            "{{memberId}}"
+          ]
+        },
+        "description": "Expect **200** and Ploy's record."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "pm.test('it is Ploy', () => pm.expect(pm.response.json().email).to.eql('ploy@acme.example'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 UPDATE — make Ploy an admin",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/members/{{memberId}}",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members",
+            "{{memberId}}"
+          ]
+        },
+        "description": "Expect **200**, `role` admin and a new `updated_at`. Only `role` can change here; any other field is refused.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"admin\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "pm.test('role is admin', () => pm.expect(pm.response.json().role).to.eql('admin'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 UPDATE — new temporary password",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/members/{{memberId}}/password",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members",
+            "{{memberId}}",
+            "password"
+          ]
+        },
+        "description": "Expect **200** and `temporary_password` true: the Admin sets it, Ploy must replace it.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"password\": \"a-fresh-temporary-password\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "pm.test('password is temporary', () => pm.expect(pm.response.json().temporary_password).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 DELETE — remove Ploy",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/members/{{memberId}}",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members",
+            "{{memberId}}"
+          ]
+        },
+        "description": "Expect **204** with no body. In the table the row stays, with `removed` filled in."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 READ ONE — Ploy after removal",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/members/{{memberId}}",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members",
+            "{{memberId}}"
+          ]
+        },
+        "description": "Expect **200** with `removed_at` set: the record stays so that past actions still name Ploy (FR-6.2)."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "pm.test('marked removed', () => pm.expect(pm.response.json().removed_at).to.not.eql(null));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 READ ALL — Ploy no longer listed",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/members",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members"
+          ]
+        },
+        "description": "Expect **200** and only the two demo members."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Ploy not listed', () => pm.expect(pm.response.json().map(m => m.email)).to.not.include('ploy@acme.example'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 DELETE — the last admin",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/members/{{adminId}}",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members",
+            "{{adminId}}"
+          ]
+        },
+        "description": "Expect **409**: Nok is the only active admin, and an installation with no admin could not be administered again (FR-6.3)."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 409', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 READ ONE — unknown id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/members/11111111-2222-4333-8444-555555555555",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "members",
+            "11111111-2222-4333-8444-555555555555"
+          ]
+        },
+        "description": "Expect **404**."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "adminId",
+      "value": "00000000-0000-4000-8000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "memberId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

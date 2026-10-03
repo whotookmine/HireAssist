@@ -22,10 +22,6 @@ Assumptions currently stated in the proposal that we have not verified:
 - [ ] Realistic default retention period for UC-5 (6 / 12 / 24 months?).
 - [ ] All NFR figures are estimates — validate against measured load-test results and revise.
 - [ ] Model-provider rate limits may cap concurrency before worker count does (risk matrix item).
-- [ ] UC-6: how does an invited person set the password they sign in with (UC-0)? Nothing in the
-      use cases or requirements covers it.
-- [ ] UC-6: may the last Admin be removed or demoted? If so, the installation can no
-      longer be administered.
 
 Raised by the ADRs recorded on 2026-09-11, and load-bearing for them:
 
@@ -112,7 +108,8 @@ Service–Operations–Collaborators table.
 
 | Term | Meaning |
 |---|---|
-
+| **Member** | A person who has been given credentials to sign in to this installation, holding exactly one role: Admin or Recruiter. Signed out, a Member is a Guest; signed in, they act in their role. A removed Member can no longer sign in but still identifies the person behind their past actions. *Avoid:* account, membership; *user* only in its everyday sense of anyone using the software. |
+| **Temporary Password** | A password an Admin sets for a Member, when creating them or later. It cannot start a session; the Member must first replace it with one only they know. *Avoid:* initial password. |
 | **Guest** | A person who has not signed in. On signing in they act as a Recruiter or an Admin, so *Recruiter* and *Admin* always mean a signed-in user. |
 | **Job Opening** | An open role, holding weighted screening criteria and an expected time-to-fill. |
 | **Criterion** | One requirement of a job opening, flagged must-have or nice-to-have, with a weight. |

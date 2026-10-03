@@ -1,0 +1,33 @@
+# docker-compose.yml — PostgreSQL for the Identity Service.
+#
+#   make db-up      start it; the first start also runs db/01-schema.sql and db/02-seed.sql
+#   make db-down    stop it (data is kept); `docker compose down -v` wipes the data as well
+#
+# The service connects with:  postgres://identity:identity@localhost:5433/identity
+# Port 5433 on the host, so it does not clash with another PostgreSQL on 5432.
+
+name: hireassist-identity
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: hireassist-identity-db
+    environment:
+      POSTGRES_USER: identity
+      POSTGRES_PASSWORD: identity
+      POSTGRES_DB: identity
+      TZ: Asia/Bangkok
+      PGTZ: Asia/Bangkok
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U identity -d identity"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

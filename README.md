@@ -38,6 +38,7 @@ Term project for **Software Architecture**, Chulalongkorn University.
 | [docs/diagrams/](docs/diagrams/) | Diagrams as code — the use case diagram (PlantUML source + rendered SVG) and the architecture diagram (hand-laid SVG). |
 | [docs/SERVICE-OPERATIONS-COLLABORATORS.md](docs/SERVICE-OPERATIONS-COLLABORATORS.md) | Each service's operations and who it collaborates with. |
 | [services/ai-service/](services/ai-service/) | **Code.** The AI Service — Python, uv, gRPC. The first implemented service. |
+| [services/identity/](services/identity/) | **Code.** The Identity Service — Go, net/http, PostgreSQL, REST. Member CRUD; signing in is not built yet. |
 | [proto/](proto/) | Shared gRPC contracts. Callers generate clients from these. |
 | [docs/OVERVIEW.md](docs/OVERVIEW.md) | Runtime view — what each service owns, who calls whom, and the call sequence behind each use case. |
 | [docs/HireAssist-SOC.docx](docs/HireAssist-SOC.docx) | The Service–Operations–Collaborators table as a Word document. Regenerate rather than edit. |

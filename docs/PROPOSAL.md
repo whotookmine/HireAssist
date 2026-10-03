@@ -245,6 +245,9 @@ account.
 
 **Alternate flows**
 - *1a. Invalid credentials* — access denied and no session issued; the user remains a Guest.
+- *1b. The password is temporary* — no session is issued. The Guest first replaces it with a
+  password of their own, then signs in with that. A temporary password is one an Admin set, when
+  the member was created or later (UC-6), so after this step only the member knows their password.
 - *4a. Token expired* — the session ends, and the user is prompted to sign in again as a Guest.
 - *4b. Action exceeds the assigned role* — request rejected and the attempt recorded.
 
@@ -528,10 +531,14 @@ liability — and no one has to remember to do it.
 **Description**
 
 Access to candidate data is a PDPA obligation as much as a security concern, so deciding who has
-it belongs to one role. An Admin creates an account for a person and assigns them a role —
+it belongs to one role. An Admin adds a person as a member and assigns them a role —
 **Admin** or **Recruiter** — removes a member who should no longer have access, or changes a
 member's role. Because there is no self-service sign-up, creating a member means creating their
-account outright, with an initial password the Admin passes to them out of band. The role decides what that person may do once they sign in (UC-0): a Recruiter
+credentials outright, with a temporary password the Admin passes to them out of band. Removing a
+member ends their access but not their identity: they can no longer sign in, and the audit log and
+the other records of what they did still name them. A member who has lost their password asks an
+Admin, who sets a new one and passes it on the same way, which also ends that member's existing
+sessions. This is not a self-service reset: nothing reaches the member except through an Admin. The role decides what that person may do once they sign in (UC-0): a Recruiter
 creates job openings, screens resumes, prepares interview questions and monitors the pipeline,
 while an Admin does all of that and additionally configures data retention (UC-5) and manages
 access here.
@@ -542,14 +549,18 @@ task that only an Admin performs. Folding the two together hid the Admin's disti
 inside a use case that everyone participates in.
 
 **Main flow**
-1. Admin chooses to create a member account, remove a member, or change a member's role.
-2. To create one, Admin enters the person's email address, sets an initial password, and assigns a role — Admin or Recruiter.
-3. System applies the change to the membership list.
-4. Admin passes the credentials to the new member outside the system.
+1. Admin opens the list of active members and chooses to create a member, remove a member, change a member's role, or set a new password for a member.
+2. To create one, Admin enters the person's email address, sets a temporary password, and assigns a role — Admin or Recruiter.
+3. System applies the change to the list of members.
+4. Admin passes any new credentials to the member outside the system.
 
 **Alternate flows**
 - *1a. A Recruiter attempts any of these actions* — the request is rejected and the attempt
   recorded, as for any action exceeding the assigned role (UC-0, 4b).
+- *3a. The change would leave no Admin* — removing or demoting the last active Admin is refused.
+  There is no self-service route into the system (UC-0), so an installation with no Admin could
+  not be administered again without the development team. An Admin may remove or demote
+  themselves while another Admin remains.
 
 **Outcome:** Only the people the company chooses can reach its candidate data, each with exactly
 the permissions of their role.
@@ -678,19 +689,19 @@ and lawfully, turning a dead archive into a live sourcing channel.
 
 ## Functional Requirements
 
-The full set of 44 functional requirements is maintained in
+The full set of 49 functional requirements is maintained in
 **[FUNCTIONAL-REQUIREMENTS.md](FUNCTIONAL-REQUIREMENTS.md)**, grouped by the use case each one
 serves and numbered `FR-<use case>.<n>` for traceability.
 
 | Use case | Requirements | Count |
 |---|---|---|
-| UC-0 Sign in | FR-0.1, FR-0.2, FR-0.3, FR-0.4 | 4 |
+| UC-0 Sign in | FR-0.1 – FR-0.5 | 5 |
 | UC-1 Create a job opening from natural-language requirements | FR-1.1 – FR-1.8 | 8 |
 | UC-2 Batch-screen resumes against a job opening | FR-2.1 – FR-2.12 | 12 |
 | UC-3 Generate candidate-specific interview questions | FR-3.1 – FR-3.5 | 5 |
 | UC-4 Monitor hiring pipeline and stale positions | FR-4.1 – FR-4.4, FR-4.5, FR-4.6 | 6 |
 | UC-5 Enforce candidate data retention | FR-5.1, FR-5.2, FR-5.3 – FR-5.5, FR-5.6 – FR-5.8 | 8 |
-| UC-6 Manage members and roles | FR-6.1 | 1 |
+| UC-6 Manage members and roles | FR-6.1 – FR-6.5 | 5 |
 
 The deferred use case D-1 has no functional requirements.
 
