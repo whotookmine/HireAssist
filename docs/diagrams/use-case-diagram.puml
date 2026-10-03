@@ -1,11 +1,11 @@
 @startuml use-case-diagram
 ' HireAssist — Use Case Diagram (UML)
 '
-' This file is the source of the diagram. use-case-diagram.svg next to it is rendered from it
+' This file is the source of the diagram. use-case-diagram.png next to it is rendered from it
 ' and embedded in docs/PROPOSAL.md. After editing, re-render and commit both files together:
 '
-'   plantuml -tsvg docs/diagrams/use-case-diagram.puml
-'   (or: java -jar plantuml.jar -tsvg docs/diagrams/use-case-diagram.puml)
+'   plantuml -tpng docs/diagrams/use-case-diagram.puml
+'   (or: java -jar plantuml.jar -tpng docs/diagrams/use-case-diagram.puml)
 '
 ' It must agree with the use cases in docs/PROPOSAL.md. When a use case changes, follow the
 ' checklist in CLAUDE.md -> "When a use case changes". D-1 is deferred and deliberately absent.

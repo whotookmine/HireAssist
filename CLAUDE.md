@@ -87,8 +87,8 @@ every one, every time:
 2. The **overview table** at the top of *Scenario (use-case & description)*
 3. The **actors table** — actor descriptions name the use cases they participate in
 4. The **use case diagram** — `docs/diagrams/use-case-diagram.puml` (PlantUML): use cases,
-   associations, relationships. Re-render `use-case-diagram.svg` from it and commit both together
-   (`plantuml -tsvg docs/diagrams/use-case-diagram.puml`); the proposal embeds the SVG, so a
+   associations, relationships. Re-render `use-case-diagram.png` from it and commit both together
+   (`plantuml -tpng docs/diagrams/use-case-diagram.puml`); the proposal embeds the PNG, so a
    stale image is a stale diagram
 5. The **relationships rationale** below the diagram, if any «include»/«extend» is affected
 6. **Cross-references inside other use cases** — grep for `UC-` and read each hit in context
@@ -170,7 +170,7 @@ clone or a new session. Do not link to it by path and do not assume anyone can o
 | The lecturer's ADR samples | **In the repo**, `docs/reference/` | Safe to reference |
 | Course requirements & grading | **In the repo**, `docs/course/` — copies | Safe to reference |
 | The assignment brief and submission guideline | **In the repo**, `docs/course/ASSIGNMENT.md` | Safe to reference |
-| The architecture diagram | **Deprecated in this repo.** `docs/diagrams/architecture-diagram.svg` is the old hand-laid version; the live one is being redrawn **outside the repo** | Do not spend effort correcting the committed SVG. Known defects in it are recorded but not being fixed here. When the new diagram lands, it replaces the file and `docs/ARCHITECTURE.md` is revisited with it. |
+| The architecture diagram | **In the repo again** as `docs/diagrams/sw-arch.drawio.png`, drawn in draw.io outside it. The superseded hand-laid `architecture-diagram.svg` was deleted on 2026-10-03; it is in Git history if it is ever wanted. | The `.drawio` source lives outside the repo, so the PNG cannot be edited here — check it against the Service–Operations–Collaborators table and report what differs rather than attempting a fix. |
 | The ADR Word export, `HireAssist-ADRs.docx` | Moved **outside this repo**, to the sibling `word/` folder | Not linked from the repo. Regenerate with `docs/adr/build-docx.py` if it is needed again — the markdown in `docs/adr/` is the source. |
 | Verbal guidance given in class, or decisions made in chat | Nowhere, unless written down | This is the dangerous one — see below |
 
