@@ -120,7 +120,7 @@ Invitation Email` was removed once it turned out no use case or requirement desc
 | Use Case Diagram | `PROPOSAL.md` → `diagrams/use-case-diagram.puml` | Done — UML notation, PlantUML source with rendered PNG |
 | Functional Requirements | `PROPOSAL.md` → `FUNCTIONAL-REQUIREMENTS.md` | Done — 50, traced to use cases |
 | Non-functional Requirements | `PROPOSAL.md` → `NON-FUNCTIONAL-REQUIREMENTS.md` | Done — 17, grouped by quality attribute |
-| ADRs (≥3) | `../adr/` | Done — 9 recorded (ADR-001…009; ADR-005 and ADR-009 *Proposed*), indexed from `PROPOSAL.md` |
+| ADRs (≥3) | `../adr/` | Done — 11 recorded (ADR-001…011; ADR-005, ADR-009 and ADR-010 *Proposed*), indexed from `PROPOSAL.md` |
 
 ---
 
@@ -142,6 +142,8 @@ Invitation Email` was removed once it turned out no use case or requirement desc
   hiring record, MongoDB for candidate profiles, justifications and interview guides.
   Authentication is UC-0, signing in.
 - **The broker sits between Hiring and Resume Processing.** Hiring publishes a request to screen
-  each resume and consumes the result, in place of the REST handover and its callback. ADR-010 is
-  to record the decision; the architecture diagram, the Service–Operations–Collaborators table
-  and the runtime view change with it.
+  each resume and consumes the result, in place of the REST handover and its callback. The
+  decision still has no record — ADR-010 and ADR-011 were taken by the numbers in the meantime,
+  so the next free one is ADR-012, and ADR-002's *no message broker* stands until it is written.
+  The architecture diagram, the Service–Operations–Collaborators table and the runtime view
+  change with it.

@@ -15,6 +15,22 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-10-17 22:28 — The proposal's ADR index catches up with the stack
+
+- The proposal listed nine records and called ADR-001 *REST on every boundary*. It now lists
+  **eleven**, says ADR-007 later excepts the AI Service, and explains the reading order in two
+  groups: the first six, which build on each other, and the five that answer questions those
+  raised. A paragraph says the records are a stack and points at the living view for which parts
+  no longer hold — without it, a reader takes each summary as current.
+- The assignment's status table said nine ADRs, and reserved **ADR-010 for the message broker**.
+  Those numbers were taken in the meantime, so the next free one is **ADR-012**; the broker
+  still has no record, and ADR-002's *no message broker* stands until it does.
+- The Word proposal is a condensation written by its builder, not a conversion, and it carries
+  no ADR index — the records ship as their own document — so this change is to the repository's
+  copy only.
+
+---
+
 ## 2026-10-17 21:45 — Two records written for decisions implementation had already made
 
 - **ADR-010: the gateway is the only place an access token is verified.** *Proposed* — it binds

@@ -3,8 +3,8 @@
 *Software Architecture — Term Project*
 
 > **Status:** Draft 3 — Project Description, Use Cases, Functional and Non-functional
-> Requirements, the use case diagram (UML, PlantUML source), and six ADRs — five accepted,
-> ADR-005 proposed — complete.
+> Requirements, the use case diagram (UML, PlantUML source), and eleven ADRs — eight accepted,
+> ADR-005, ADR-009 and ADR-010 proposed — complete.
 
 ---
 
@@ -740,7 +740,7 @@ and cannot drift between a summary and the record it summarises.
 
 | ID | Decision | Status |
 |---|---|---|
-| [ADR-001](adr/ADR-001-service-decomposition.md) | Capability-aligned service decomposition behind an API gateway — five services, REST on every boundary, and Kubernetes for service discovery | Accepted |
+| [ADR-001](adr/ADR-001-service-decomposition.md) | Capability-aligned service decomposition behind an API gateway — five services, REST on every boundary (ADR-007 later excepts the AI Service), and Kubernetes for service discovery | Accepted |
 | [ADR-002](adr/ADR-002-async-screening-pipeline.md) | One independently retried unit of work per resume, held in a claimable work table — at-least-once delivery, idempotent results, classified retries, no message broker | Accepted |
 | [ADR-003](adr/ADR-003-polyglot-persistence.md) | PostgreSQL as system of record, MongoDB for AI-derived documents, object storage for resume files | Accepted |
 | [ADR-004](adr/ADR-004-llm-access.md) | All model access through one AI Service, on a managed API that does not train on our data | Accepted |
@@ -748,14 +748,27 @@ and cannot drift between a summary and the record it summarises.
 | [ADR-006](adr/ADR-006-single-tenant-deployment.md) | One deployment per customer company | Accepted |
 | [ADR-007](adr/ADR-007-grpc-for-the-ai-service.md) | gRPC on the AI Service boundary — the one exception to REST, for a compiled contract and generated clients on both sides | Accepted |
 | [ADR-008](adr/ADR-008-profile-extraction-is-a-model-call.md) | Turning a resume into a candidate profile is a model call — extracting the text from the PDF stays deterministic in Resume Processing, and no model receives a file | Accepted |
-| [ADR-009](adr/ADR-009-jwt-with-refresh-tokens.md) | Short-lived JWT access tokens with rotating refresh tokens | **Proposed** |
+| [ADR-009](adr/ADR-009-jwt-with-refresh-tokens.md) | Short-lived JWT access tokens with rotating refresh tokens — verified by whoever uses one, so no service calls Identity to check a token | **Proposed** |
+| [ADR-010](adr/ADR-010-verification-at-the-gateway-only.md) | The gateway is the only place an access token is verified — the services behind it trust the deployment's private network, which reverses that part of ADR-001 and ADR-009 | **Proposed** |
+| [ADR-011](adr/ADR-011-hiring-document-store.md) | Interview guides live in a document store belonging to the Hiring Service, not the one the Resume Processing Service holds | Accepted |
 
-They are best read in order: **ADR-001** draws the service boundaries, **ADR-002** fills in the
-busiest one, **ADR-003** says what each side of those boundaries stores, and **ADR-004** fills in
-the external dependency the other three are built to survive. **ADR-005** proposes how each
-service's language is chosen and the contract and telemetry rules that would keep several
-languages coherent — recorded as *Proposed*, because the languages themselves wait on service
-ownership.
+The first four are best read in order: **ADR-001** draws the service boundaries, **ADR-002**
+fills in the busiest one, **ADR-003** says what each side of those boundaries stores, and
+**ADR-004** fills in the external dependency the other three are built to survive. **ADR-005**
+proposes how each service's language is chosen and the contract and telemetry rules that would
+keep several languages coherent — recorded as *Proposed*, because the languages themselves wait
+on service ownership. **ADR-006** then fixes the deployment model that the later records assume.
+
+The remaining five answer questions the first six raised: **ADR-007** takes one boundary off
+REST, **ADR-008** moves resume parsing onto the model, **ADR-009** decides what a session is,
+**ADR-010** decides who checks it, and **ADR-011** decides where an AI-derived document belongs
+when the service that owns it is not the one that already had a document store.
+
+The records are a stack: an earlier one is never edited because of a later one, so each states
+what was decided on its date and nothing after it. Where a later record changed part of an
+earlier one — ADR-007 on the AI Service boundary, ADR-010 on where a token is verified — the
+earlier record still reads as it did, and `adr/INDEX.md` carries the living view of which parts
+no longer hold.
 
 Each record carries its rejected alternatives, the argument, the negative implications, and the
 mapping to the functional and non-functional requirements it serves.
