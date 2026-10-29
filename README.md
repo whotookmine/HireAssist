@@ -34,14 +34,15 @@ Term project for **Software Architecture**, Chulalongkorn University.
 | [docs/PROPOSAL.md](docs/PROPOSAL.md) | **The submission document.** Project description, target customers, use cases, requirements, ADRs. Source of truth. |
 | [docs/FUNCTIONAL-REQUIREMENTS.md](docs/FUNCTIONAL-REQUIREMENTS.md) | 50 functional requirements, traced to the use case each serves. |
 | [docs/NON-FUNCTIONAL-REQUIREMENTS.md](docs/NON-FUNCTIONAL-REQUIREMENTS.md) | 17 non-functional requirements, grouped by quality attribute. |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture diagram (version 1): the components, what each owns, and how to read the picture. |
-| [docs/diagrams/](docs/diagrams/) | Diagrams as code — the use case diagram (PlantUML source + rendered SVG) and the architecture diagram (hand-laid SVG). |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture diagram (version 2, with the message broker): the components, what each owns, and how to read the picture. |
+| [docs/diagrams/](docs/diagrams/) | Diagrams — the use case diagram (PlantUML source + rendered PNG), the architecture diagram version 2 (SVG source + rendered PNG) and version 1 (draw.io PNG). |
 | [docs/SERVICE-OPERATIONS-COLLABORATORS.md](docs/SERVICE-OPERATIONS-COLLABORATORS.md) | Each service's operations and who it collaborates with. |
 | [services/ai-service/](services/ai-service/) | **Code.** The AI Service — Python, uv, gRPC. The first implemented service. |
 | [services/identity/](services/identity/) | **Code.** The Identity Service — Go, net/http, PostgreSQL, REST. Member CRUD and signing in (UC-0): ES256 access tokens and rotating refresh tokens (ADR-009). |
 | [services/hiring/](services/hiring/) | **Code.** The Hiring Service — Go, PostgreSQL and MongoDB, REST with an OpenAPI contract, RabbitMQ and MinIO. Job openings with AI-proposed criteria (UC-1), batch screening through the message broker (UC-2) and interview guides (UC-3). |
 | [services/gateway/](services/gateway/) | **Code.** The API Gateway — Go. Routing, local token verification (ADR-009), the role gate and rate limiting. |
 | [proto/](proto/) | Shared gRPC contracts. Callers generate clients from these. |
+| [services/web/](services/web/) | **Code.** The HireAssist Web UI — React, TypeScript, Mantine. Sign-in and UC-1 to UC-3, against the gateway or on a mock backend in the browser. |
 | [docs/OVERVIEW.md](docs/OVERVIEW.md) | Runtime view — what each service owns, who calls whom, and the call sequence behind each use case. |
 | `docs/build-proposal-docx.py`, `docs/adr/build-docx.py` | Build the two Word deliverables. The documents themselves are generated, not committed. |
 | [docs/CONTEXT.md](docs/CONTEXT.md) | Internal working notes — open questions, open decisions, glossary. Not for submission. |
@@ -80,15 +81,17 @@ index and the decisions not yet taken in [`docs/adr/INDEX.md`](docs/adr/INDEX.md
 ## Repository status
 
 **Documentation, plus five services in progress:** the AI Service, the Identity Service, the
-Hiring Service, the Resume Processing Service and the API Gateway, each with its own README.
-`docker compose up --build` at the root runs the gateway, the Hiring Service and the Resume
-Processing Service, with the AI Service on scripted answers, against PostgreSQL, MongoDB,
-RabbitMQ and MinIO; the Identity Service still has its own compose file.
+Hiring Service, the Resume Processing Service and the API Gateway, each with its own README, and
+the web app. `docker compose up -d --build` at the root runs the whole system: the web app on
+http://localhost:4173, the gateway, the Identity, Hiring, Resume Processing and AI services
+(the AI Service with canned answers, so no API key is needed), PostgreSQL, MongoDB, RabbitMQ
+and MinIO. The comments at the top of `docker-compose.yml` list the demo sign-ins and the
+variables that move a host port that is already taken.
 
 The repository is a monorepo. Services live at `services/<name>/` and shared gRPC contracts at
 `proto/`. That layout was settled by starting implementation and still needs an ADR. Each
 service's language is its owner's choice under ADR-005, which is still *Proposed*. The gateway
-has no owner yet (ADR-005 rule 5), and it is written rather than configured from an off-the-shelf
+is owned by the whole team jointly (ADR-005 rule 5), and it is written rather than configured from an off-the-shelf
 gateway because ADR-009 asks it to verify tokens itself and to record a rejected request — Go for
 consistency with the two services it fronts.
 
@@ -96,8 +99,8 @@ consistency with the two services it fronts.
 hire-assist/
 ├── README.md
 ├── .gitignore
-├── docker-compose.yml       # local stack: gateway, Hiring, Resume Processing, AI Service and their stores
-├── deploy/                  # container support files (database init)
+├── docker-compose.yml       # local stack: every service, datastore and the broker
+├── deploy/                  # container support files (database init, development signing keys)
 ├── proto/                   # shared gRPC contracts
 ├── services/
 │   ├── ai-service/          # AI Service (Python, gRPC)

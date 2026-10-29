@@ -15,6 +15,33 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-10-17 23:30 — ADR-013: the broker carries the screening handover; design version 2
+
+- **Two records renumbered after upstream took ADR-010 and ADR-011** (gateway-only verification,
+  Hiring's document store): the refresh-cookie record is now **ADR-012**, and the broker record
+  **ADR-013**. The 15:46, 19:39 and 19:58 entries use the old numbers — read their "ADR-010" and
+  "ADR-011" for the cookie or the broker as ADR-012 and ADR-013. Resume Processing's README and
+  the assignment notes now point at ADR-013.
+- **ADR-013 (Accepted) records RabbitMQ for the UC-2 handover**, as agreed on 2026-10-16 and built
+  in PR #16: one message per resume each way, replacing ADR-002's REST handover, work table and
+  callback while keeping its per-resume unit of work. It meets the course's broker requirement
+  where it removes the most hand-written code. The index records what it changes in ADR-001 and
+  ADR-002; the proposal's ADR table now runs to ADR-013.
+- **The SOC table, the runtime view and the architecture page describe the broker** instead of the
+  REST handover, and Resume Processing's store as built — everything in MongoDB, a gap against
+  ADR-003 now stated. CLAUDE.md's "no broker" constraint is updated.
+- **Architecture diagram version 2 keeps version 1's layout and adds the broker**, as an SVG in the
+  repo (`diagrams/sw-arch-v2.svg`), because version 1's draw.io source is outside the repo.
+- **The proposal and ADR Word documents are rebuilt** for the progress submission; the build
+  scripts find the repository from their own location.
+- **OpenAI is usable as ADR-004's substitute provider** by configuration and was used for the
+  demonstration; Anthropic stays the default. ADR-004 already allowed it, so no new record.
+
+Outstanding: the pipeline events, still pushed synchronously; the scope cut deferring UC-4 to
+UC-6, if the team wants it recorded; an owner for the gateway.
+
+---
+
 ## 2026-10-17 21:45 — Two records written for decisions implementation had already made
 
 - **ADR-010: the gateway is the only place an access token is verified.** *Proposed* — it binds
@@ -37,6 +64,24 @@ what a session decided, and rewriting it destroys the record of when and why som
 - Outstanding: an owner for the gateway (ADR-005 rule 5); UC-3's shortlisted precondition,
   which can now be checked since shortlisting exists; the proposal's ADR index, which still
   stops at ADR-006.
+
+---
+
+## 2026-10-17 19:58 — The web app adopts Hiring's UC-1/UC-2 contract
+
+- **The web app now uses the Hiring Service's own contract** for proposals, screening, results,
+  overrides and the shortlist, replacing the shapes it had proposed — this closes the 15:46
+  entry's outstanding item, with Hiring's answer rather than the app's.
+- **Batches are listed from the results and from this browser's uploads**, because Hiring has no
+  operation that lists an opening's batches; one would be simpler and is worth adding.
+- **An override carries no reason**, as Hiring's contract has it; the app stopped asking for one.
+  Whether FR-2.8 wants the reason recorded is for Hiring's owner.
+- **The broker ADR will be ADR-011.** The 19:39 entry calls it ADR-010, written before ADR-010
+  went to the gateway's refresh cookie in the 15:46 entry; Resume Processing's README says the
+  same and needs the same correction.
+
+Outstanding: the broker ADR (ADR-011) and the SOC table and runtime view it changes; a batch
+listing in Hiring; UC-3's shortlisted precondition in Hiring.
 
 ---
 
@@ -68,6 +113,17 @@ what a session decided, and rewriting it destroys the record of when and why som
 Outstanding: ADR-010 and the documents that change with it — the SOC table and the runtime view
 still describe the REST handover; per-criterion verdicts in `screening.completed`, for filtering
 on nice-to-haves; UC-3's shortlisted precondition.
+
+---
+
+## 2026-10-17 15:46 — Web UI on a mock backend; front-end framework settled
+
+- **Front-end framework settled** by its owner under ADR-005: React and TypeScript, a single-page app that talks only to the gateway. A browser leaves no language choice, so TypeScript needs no further reason under ADR-005 rule 6. Next.js was rejected because its own server would be a second backend beside the gateway. Removed from CONTEXT's open decisions and the ADR index's candidates.
+- **The web app calls every API under `/api`**, and whatever serves the app strips the prefix before the gateway. Without it, a page route like `/job-openings/{id}` collides with the API path of the same name, and a reload reaches the Hiring Service instead of the app. The gateway's own routes are unchanged.
+- **ADR-010 (Accepted): the refresh token is an HttpOnly cookie set by the gateway**, answering what ADR-009 left to the web app and the gateway — a script cannot set such a cookie, and the Identity Service deliberately returns the token in the body. Opt-in per request, so Postman and other API clients keep the body; signing out clears the cookie but does not revoke the token, since the Identity Service has no sign-out. The runtime view and the SOC table now show the gateway doing it. Takes the number the broker record was expected to have; that record takes the next.
+- **Sign-in, job openings and interview guides use the services' real contracts**, and the app works against the gateway for them. The proposal, screening batches, ranked results and candidate endpoints are not served yet: the app proposes their shapes, mocked in the browser and listed in `services/web/README.md` for Hiring's owner to confirm or change.
+- **The gateway is owned by the whole team jointly**, which closes the ADR-005 rule 5 gap the last two entries left open. Every member already touches it — its routes front every service — so naming one person would not match how it is worked on; the cost is that no single person is accountable for it.
+- Outstanding: Hiring to confirm the proposed UC-1/UC-2 endpoints.
 
 ---
 

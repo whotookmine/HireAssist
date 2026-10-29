@@ -28,7 +28,8 @@ From the repository root, `docker compose up --build` starts this service on `lo
 with everything it talks to: PostgreSQL, MongoDB, RabbitMQ, MinIO, the Resume Processing Service
 and the AI Service, the last on scripted answers labelled `canned`. If a port is taken, move it —
 `POSTGRES_PORT`, `MONGO_PORT`, `RABBITMQ_PORT`, `MINIO_PORT` and the rest are in
-`docker-compose.yml`.
+`docker-compose.yml`. The same command also starts the Identity Service, the gateway and the
+web app on http://localhost:4173.
 
 | Variable | Meaning |
 |---|---|
