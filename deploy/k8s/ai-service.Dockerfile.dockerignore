@@ -1,0 +1,10 @@
+# Built from the repository root: send only what this image needs, and never locally generated
+# code or caches — the image generates its own.
+*
+!proto/
+!services/ai-service/pyproject.toml
+!services/ai-service/uv.lock
+!services/ai-service/.python-version
+!services/ai-service/src/
+services/ai-service/src/**/__pycache__
+services/ai-service/src/ai_service/gen/

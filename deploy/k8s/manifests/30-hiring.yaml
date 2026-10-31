@@ -1,0 +1,68 @@
+# The Hiring Service: REST on 8080, reached by the gateway as hiring.hireassist.svc:8080.
+#
+# Every address it needs is a Service name in this namespace (ADR-014): the same variables the
+# Compose stack sets, with Kubernetes names in them. Connection strings that carry a password
+# come from the hiring Secret that up.sh creates.
+#
+# It serves /healthz but not yet /readyz, so its readiness only says the process answers — not
+# that PostgreSQL, MongoDB and the broker do. Until it has a readiness check of its own, a Hiring
+# Pod that has lost its database still receives requests.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hiring
+  namespace: hireassist
+  labels: { app: hiring }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: hiring }
+  template:
+    metadata:
+      labels: { app: hiring, tier: service }
+    spec:
+      containers:
+        - name: hiring
+          image: hireassist/hiring:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - { name: PORT, value: "8080" }
+            - { name: MONGO_DATABASE, value: hiring }
+            - { name: OBJECT_STORE_ENDPOINT, value: "minio.hireassist.svc:9000" }
+            - { name: OBJECT_STORE_BUCKET, value: resumes }
+            - { name: RESUME_PROCESSING_URL, value: "http://resume-processing.hireassist.svc" }
+            - { name: AI_SERVICE_ADDRESS, value: "ai-service.hireassist.svc:50051" }
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: hiring, key: DATABASE_URL } }
+            - name: MONGO_URL
+              valueFrom: { secretKeyRef: { name: hiring, key: MONGO_URL } }
+            - name: RABBITMQ_URL
+              valueFrom: { secretKeyRef: { name: hiring, key: RABBITMQ_URL } }
+            - name: OBJECT_STORE_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: hiring, key: OBJECT_STORE_ACCESS_KEY } }
+            - name: OBJECT_STORE_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: hiring, key: OBJECT_STORE_SECRET_KEY } }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hiring
+  namespace: hireassist
+spec:
+  type: ClusterIP
+  selector: { app: hiring }
+  ports:
+    - name: http
+      port: 8080

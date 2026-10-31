@@ -1,0 +1,14 @@
+# A local Kubernetes cluster for HireAssist (ADR-014). One node: kind keeps a copy of every image
+# in each node, so extra workers multiply the disk a laptop needs, and Service discovery works the
+# same on one node as on many. The web app and the gateway are the only Services published to this
+# machine (ADR-010), on NodePorts that kind maps to the same port numbers on the host.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: hireassist
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080 # web app      -> http://localhost:30080
+        hostPort: 30080
+      - containerPort: 30800 # API gateway  -> http://localhost:30800
+        hostPort: 30800
