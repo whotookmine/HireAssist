@@ -1,0 +1,56 @@
+# The Identity Service: REST on 8081, reached only by the gateway, as identity.hireassist.svc:8081.
+#
+# The image is the Compose stack's (deploy/dev-keys/identity.Dockerfile), started without its
+# key wrapper: here the private signing key comes from the identity-signing-key Secret that
+# up.sh creates once, and only this Deployment can read it (ADR-009).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity
+  namespace: hireassist
+  labels: { app: identity }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: identity }
+  template:
+    metadata:
+      labels: { app: identity, tier: service }
+    spec:
+      containers:
+        - name: identity
+          image: hireassist/identity:dev
+          imagePullPolicy: IfNotPresent
+          command: ["/usr/local/bin/identity"]
+          ports:
+            - containerPort: 8081
+          env:
+            - { name: PORT, value: "8081" }
+            - { name: JWT_KEY_ID, value: dev-1 }
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: identity, key: DATABASE_URL } }
+            - name: JWT_PRIVATE_KEY
+              valueFrom: { secretKeyRef: { name: identity-signing-key, key: JWT_PRIVATE_KEY } }
+          # Ready only while its database answers.
+          readinessProbe:
+            httpGet: { path: /readyz, port: 8081 }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8081 }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity
+  namespace: hireassist
+spec:
+  type: ClusterIP
+  selector: { app: identity }
+  ports:
+    - name: http
+      port: 8081

@@ -145,3 +145,24 @@ Invitation Email` was removed once it turned out no use case or requirement desc
   each resume and consumes the result, in place of the REST handover and its callback. ADR-013 is
   to record the decision; the architecture diagram, the Service–Operations–Collaborators table
   and the runtime view change with it.
+
+---
+
+## Progress submission — service discovery and NFRs
+
+> Submit your project progress including these:
+>
+> - VDO Clip [<5min] to describe how to manage Service Discovery & Non-Functional Requirement
+> - Your project proposal document with updated ADRs, revised microservice design, and diagrams
+
+**What this means for us** (agreed 2026-10-31):
+
+- The clip has two halves — how service discovery is managed, and the important non-functional
+  requirements — and the submission is compiled by a third member. Each half has an owner.
+- **Service discovery is explained from the discovery diagram and the Kubernetes manifests.**
+  ADR-001 chose Kubernetes, but until now the system ran only under Compose, so ADR-014 carries
+  the decision out: every workload has a manifest, one script builds them into a local kind
+  cluster, and a second walks through discovery step by step. The clip does not run the cluster —
+  the brief asks for a description, and the first attempt filled the laptop's disk — so it shows
+  the diagram and the YAML instead. The architecture page gains a service-discovery section and
+  diagram.
