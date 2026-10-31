@@ -78,6 +78,47 @@ connected only to the gateway — no other service calls it.
 Resume files themselves live in object storage, written by Hiring when a batch is uploaded and
 read by Resume Processing when it works; neither database holds them.
 
+## How the services find each other
+
+Every arrow in the diagram above is a call to a **name**, never to an address. Service discovery
+is Kubernetes' (ADR-001, carried out by ADR-014): each workload sits behind a Service of the same
+name, the cluster DNS turns that name into the Service's stable virtual IP, and kube-proxy passes
+each connection to one of the Pods that are *ready* at that moment. The list of those Pods — the
+Service's EndpointSlice — is kept by the platform from each Pod's label and readiness probe, so no
+service registers itself, sends heartbeats or runs a client for a registry.
+
+![Service discovery on Kubernetes](diagrams/service-discovery.png)
+
+*Diagram as code: `diagrams/service-discovery.svg`, rendered with `rsvg-convert -z 2
+docs/diagrams/service-discovery.svg -o docs/diagrams/service-discovery.png`.*
+
+| Workload | Name and port inside the cluster | Ready when | Called by |
+|---|---|---|---|
+| Web app | `web:80` — NodePort, `localhost:30080` | nginx answers | the browser |
+| API Gateway | `gateway.hireassist.svc:8000` — NodePort, `localhost:30800` | it holds a verification key | the web app |
+| Identity Service | `identity.hireassist.svc:8081` | its database answers | the gateway |
+| Hiring Service | `hiring.hireassist.svc:8080` | the process answers — it has no readiness check of its own yet | the gateway |
+| Resume Processing | `resume-processing.hireassist.svc:80`, to Pod port 3000 | MongoDB and the broker are connected | Hiring, for profiles and justifications |
+| AI Service | `ai-service.hireassist.svc:50051`, gRPC | its gRPC health check says it can serve | Hiring and Resume Processing |
+| RabbitMQ | `rabbitmq.hireassist.svc:5672` | it answers a ping | Hiring and Resume Processing |
+| PostgreSQL, Hiring | `postgres.hireassist.svc:5432` | `pg_isready` | Hiring |
+| PostgreSQL, Identity | `identity-db.hireassist.svc:5432` | `pg_isready` | Identity |
+| MongoDB | `mongo.hireassist.svc:27017` | it answers a ping | Hiring and Resume Processing |
+| MinIO | `minio.hireassist.svc:9000` | its readiness endpoint | Hiring and Resume Processing |
+
+Each service reads these names from environment variables in its manifest (`HIRING_URL`,
+`AI_SERVICE_ADDRESS`, `AMQP_URL`, …), so no address is written into any code. Only the gateway and
+the web app are published; everything else is reachable from inside the cluster only (ADR-010).
+The screening workers are the one thing nobody looks up: Hiring publishes to the broker and every
+Resume Processing replica consumes from it (ADR-013), so a new replica joins by connecting.
+
+**The Compose stack uses the same names in short form** — `hiring:8080`, `ai-service:50051` —
+which Docker's embedded DNS resolves to container IPs, so the same images run on both. It does
+not check health: Docker's DNS still returns a container whose health check fails, and Compose
+publishes service and database ports for tests and tools. Readiness and the published surface
+therefore belong to the cluster: `deploy/k8s/up.sh` builds the system into a local kind cluster,
+and `deploy/k8s/demo.sh` walks through discovery one step at a time.
+
 ## How the use cases run through it
 
 This page stops at the picture: the components, what each owns, and who calls whom. The call

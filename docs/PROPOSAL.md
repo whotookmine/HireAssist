@@ -753,6 +753,7 @@ and cannot drift between a summary and the record it summarises.
 | [ADR-011](adr/ADR-011-hiring-document-store.md) | Interview guides live in a document store belonging to the Hiring Service | Accepted |
 | [ADR-012](adr/ADR-012-refresh-token-cookie-at-the-gateway.md) | The gateway keeps the web application's refresh token in an HttpOnly cookie, so no script can read it and a session survives a reload | Accepted |
 | [ADR-013](adr/ADR-013-rabbitmq-for-the-screening-handover.md) | RabbitMQ carries the screening handover — one message per resume each way between Hiring and Resume Processing, replacing ADR-002's REST handover, work table and callback | Accepted |
+| [ADR-014](adr/ADR-014-service-discovery-through-kubernetes-services.md) | Service discovery through Kubernetes Services, resolved by the cluster DNS — services hold names, the platform registers Pods, and readiness decides which receive traffic; Compose stays for development | Accepted |
 
 They are best read in order: **ADR-001** draws the service boundaries, **ADR-002** fills in the
 busiest one, **ADR-003** says what each side of those boundaries stores, and **ADR-004** fills in
@@ -764,10 +765,11 @@ ownership.
 Later records refine the first four without editing them. **ADR-007** puts the AI Service behind
 gRPC, **ADR-008** makes turning a resume into a profile a model call, **ADR-009**, **ADR-010** and
 **ADR-012** settle signing in, who checks a token and where a browser keeps its session,
-**ADR-011** gives the Hiring Service a document store of its own for interview guides, and
+**ADR-011** gives the Hiring Service a document store of its own for interview guides,
 **ADR-013** moves the screening
 handover onto RabbitMQ — keeping ADR-002's per-resume unit of work and replacing only how it
-crosses between the services. Which parts of each record still hold is tracked in
+crosses between the services — and **ADR-014** carries out ADR-001's Kubernetes service
+discovery, with a manifest for every workload. Which parts of each record still hold is tracked in
 [`adr/INDEX.md`](adr/INDEX.md).
 
 Each record carries its rejected alternatives, the argument, the negative implications, and the
