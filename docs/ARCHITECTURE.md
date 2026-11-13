@@ -40,7 +40,7 @@ what it shows.*
 - **An adapter box beside a service stands for a dependency outside the service**, and for the
   fact that the service reaches it only through that adapter — object storage, the model
   provider, the email provider. Object storage is the deployment's own MinIO server, not an
-  external system (ADR-014); the other two are external. None of the three is drawn; the point the picture makes is that no
+  external system (ADR-018); the other two are external. None of the three is drawn; the point the picture makes is that no
   domain logic touches a provider's API directly. The Service–Operations–Collaborators table
   names them.
 - **The Scheduler is a trigger, not a service.** It is drawn because it is the only caller that

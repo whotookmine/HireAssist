@@ -21,7 +21,7 @@ and UC-5 work end to end through the API. The web app has no screens for them ye
 - **ADR-016:** this service orchestrates every erasure, and keeps it pending until each holder
   confirms.
 - **ADR-017:** both sweeps run on a timer inside this service, under a database lock.
-- **ADR-014:** the resume file is in the deployment's own MinIO, and Hiring deletes it.
+- **ADR-018:** the resume file is in the deployment's own MinIO, and Hiring deletes it.
 
 ## API
 

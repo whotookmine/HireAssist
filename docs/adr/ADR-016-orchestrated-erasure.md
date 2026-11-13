@@ -155,7 +155,7 @@ orchestration, a missing holder is a named failure on the record.
 - [ADR-003](ADR-003-polyglot-persistence.md): candidate data spans PostgreSQL, MongoDB and
   object storage. Every MongoDB document carries the candidate id so a holder can delete one
   person's data directly.
-- [ADR-014](ADR-014-self-hosted-minio-for-resume-files.md): the resume file is in the
+- [ADR-018](ADR-018-self-hosted-minio-for-resume-files.md): the resume file is in the
   deployment's own MinIO, and Hiring deletes it as part of its erasure.
 - [ADR-015](ADR-015-pipeline-events-on-the-broker.md): until Hiring publishes pipeline events,
   the sweep cannot tell whether a candidate is still in an active process. It then holds the

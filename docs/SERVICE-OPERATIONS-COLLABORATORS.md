@@ -27,7 +27,7 @@ publishing anything but the gateway unsafe.
 
 **External systems**, each behind an adapter: LLM Provider (reached only by AI Service), Email
 Provider. **Object storage is not one of them:** each deployment runs its own MinIO server, which
-Hiring and Resume Processing reach through their Object Storage Adapters over the S3 API (ADR-014). PDF text extraction is an in-process library in Resume Processing,
+Hiring and Resume Processing reach through their Object Storage Adapters over the S3 API (ADR-018). PDF text extraction is an in-process library in Resume Processing,
 not an external service — a scanned image with no text layer is a permanent failure by design
 (FR-2.7), not something to send to an OCR provider.
 

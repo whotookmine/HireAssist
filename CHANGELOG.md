@@ -15,30 +15,15 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
-## 2026-10-31 22:15 — Service discovery carried out on Kubernetes (ADR-014)
+## 2026-11-13 21:15 — The MinIO record renumbered to ADR-018
 
-- **The second progress brief is recorded** in the assignment notes: a clip on service discovery
-  and the NFRs, plus the updated proposal. The clip has two owners and a third member compiles.
-- **ADR-014 (Accepted): services address each other only by Kubernetes Service name**, resolved by
-  the cluster DNS to a stable virtual IP; the platform registers Pods from their labels, and
-  readiness decides which receive traffic. It carries out ADR-001's discovery decision, which
-  nothing had run on, and narrows CONTEXT's open question from whether the team can run a
-  cluster to whether the whole system runs on one. Compose stays for development: it resolves the
-  same names but, as tested, keeps answering with unhealthy containers.
-- **Every workload now has a manifest**, with scripts to build them into a local kind cluster and
-  to walk through discovery step by step; the cluster has one node because three filled the disk.
-- **The clip explains discovery from the diagram and the YAML, without running the cluster** — the
-  brief asks for a description, and the cluster waits on a laptop with room for it.
-- **The architecture page gains a service-discovery section and diagram**, listing every
-  workload's name, port and readiness rule.
-- **The index records what ADR-014 changes**: kube-proxy balances connections, not calls, so a
-  gRPC caller stays on one AI Service Pod — hence one replica; and on the cluster only the gateway
-  and the web app are published, half of ADR-010's condition for acceptance.
+- **Two records had been numbered ADR-014**: service discovery on Kubernetes (dated 2026-10-31)
+  and self-hosted MinIO (2026-11-13), written in parallel and merged together. Service discovery
+  keeps ADR-014, being the earlier one and the one the manifests and scripts cite. The MinIO
+  record becomes **ADR-018**, the next free number. Its content is unchanged. The 2026-11-13
+  00:40 entry below calls it ADR-014.
+- The index's two ADR-001 rows, one from each branch, are merged into one.
 
-Outstanding: a run of the cluster end to end — Docker stopped responding when the disk filled, so
-the scripts have not yet run; a readiness check for Hiring.
-
----
 ## 2026-11-13 20:05 — Hiring publishes pipeline events and serves its erasure
 
 - **Hiring publishes ADR-015's pipeline events from a transactional outbox.** Each event is
@@ -107,6 +92,31 @@ the scripts have not yet run; a readiness check for Hiring.
   gateway routes to Resume Processing, and OVERVIEW calls the Scheduler an internal trigger while v2 draws it as its own service. The diagrams are not
   yet linked from ARCHITECTURE.md. ADR-014 asks for the MinIO image to be pinned rather than
   `latest`, and for the v2 diagram to stop implying that object storage is external.
+
+## 2026-10-31 22:15 — Service discovery carried out on Kubernetes (ADR-014)
+
+- **The second progress brief is recorded** in the assignment notes: a clip on service discovery
+  and the NFRs, plus the updated proposal. The clip has two owners and a third member compiles.
+- **ADR-014 (Accepted): services address each other only by Kubernetes Service name**, resolved by
+  the cluster DNS to a stable virtual IP; the platform registers Pods from their labels, and
+  readiness decides which receive traffic. It carries out ADR-001's discovery decision, which
+  nothing had run on, and narrows CONTEXT's open question from whether the team can run a
+  cluster to whether the whole system runs on one. Compose stays for development: it resolves the
+  same names but, as tested, keeps answering with unhealthy containers.
+- **Every workload now has a manifest**, with scripts to build them into a local kind cluster and
+  to walk through discovery step by step; the cluster has one node because three filled the disk.
+- **The clip explains discovery from the diagram and the YAML, without running the cluster** — the
+  brief asks for a description, and the cluster waits on a laptop with room for it.
+- **The architecture page gains a service-discovery section and diagram**, listing every
+  workload's name, port and readiness rule.
+- **The index records what ADR-014 changes**: kube-proxy balances connections, not calls, so a
+  gRPC caller stays on one AI Service Pod — hence one replica; and on the cluster only the gateway
+  and the web app are published, half of ADR-010's condition for acceptance.
+
+Outstanding: a run of the cluster end to end — Docker stopped responding when the disk filled, so
+the scripts have not yet run; a readiness check for Hiring.
+
+---
 
 ## 2026-10-17 23:30 — ADR-013: the broker carries the screening handover; design version 2
 

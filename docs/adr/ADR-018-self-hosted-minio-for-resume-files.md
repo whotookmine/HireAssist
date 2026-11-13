@@ -1,4 +1,4 @@
-# ADR-014: Resume files live in a MinIO server that each deployment runs itself
+# ADR-018: Resume files live in a MinIO server that each deployment runs itself
 
 **Date:** 2026-11-13
 **Deciders:** Patiphon Puntusin
