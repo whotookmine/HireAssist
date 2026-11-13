@@ -753,6 +753,10 @@ and cannot drift between a summary and the record it summarises.
 | [ADR-011](adr/ADR-011-hiring-document-store.md) | Interview guides live in a document store belonging to the Hiring Service | Accepted |
 | [ADR-012](adr/ADR-012-refresh-token-cookie-at-the-gateway.md) | The gateway keeps the web application's refresh token in an HttpOnly cookie, so no script can read it and a session survives a reload | Accepted |
 | [ADR-013](adr/ADR-013-rabbitmq-for-the-screening-handover.md) | RabbitMQ carries the screening handover — one message per resume each way between Hiring and Resume Processing, replacing ADR-002's REST handover, work table and callback | Accepted |
+| [ADR-014](adr/ADR-014-self-hosted-minio-for-resume-files.md) | Resume files live in a MinIO server that each deployment runs itself — in production as well as locally, never a managed cloud store, so candidate files stay inside the deployment | Accepted |
+| [ADR-015](adr/ADR-015-pipeline-events-on-the-broker.md) | Pipeline events reach Compliance & Insights through RabbitMQ — Hiring publishes, Compliance consumes, so the dashboard never sits in Hiring's write path | Accepted |
+| [ADR-016](adr/ADR-016-orchestrated-erasure.md) | Compliance & Insights orchestrates every erasure — each holder is asked in turn, and the erasure stays pending until all confirm | Accepted |
+| [ADR-017](adr/ADR-017-in-process-scheduler.md) | The retention and staleness sweeps run on a timer inside Compliance & Insights, under a database lock — no scheduler process of its own | Accepted |
 
 They are best read in order: **ADR-001** draws the service boundaries, **ADR-002** fills in the
 busiest one, **ADR-003** says what each side of those boundaries stores, and **ADR-004** fills in

@@ -8,10 +8,10 @@ Processing, which is RabbitMQ** (ADR-013). Only the gRPC calls and the messages 
 | Service | Operations | Collaborators |
 |---|---|---|
 | **Identity Service**<br><br>*owns: members, their roles<br>and sessions*<br><br>UC-0 · UC-6 | `authenticateMember()`<br>`validateSession()`<br>`listMembers()`<br>`getMember()`<br>`createMember()`<br>`removeMember()`<br>`changeMemberRole()`<br>`setMemberPassword()`<br>`changePassword()` | *(none)* |
-| **Hiring Service**<br><br>*owns: job openings, criteria,<br>screening batches and entry status,<br>scores and overrides, shortlist<br>decisions, interview guides*<br><br>UC-1 · UC-2 · UC-3 | `proposeJobOpening()`<br>`createJobOpening()`<br>`reviseScreeningCriteria()`<br>`getScreeningCriteria()`<br>`getJobOpening()`<br>`listJobOpenings()`<br>`pauseOpening()`<br>`resumeOpening()`<br>`closeOpening()`<br>`submitScreeningBatch()`<br>`getBatchStatus()`<br>`getRankedResults()`<br>`getScreeningResult()`<br>`overrideScore()`<br>`shortlistCandidate()`<br>`generateInterviewGuide()`<br>`reviseGuide()`<br>`getInterviewGuide()`<br>`recordInterviewNote()`<br>`reportScreeningResult()` *(consumes `screening.completed`)*<br>`eraseHiringData()` | **Object Storage Adapter**<br>　`storeResumeFile()`<br>**Message broker** *(RabbitMQ)*<br>　publish `screening.requested`<br>　　*(one per resume; carries the criteria snapshot)*<br>**Resume Processing Service**<br>　`getCandidateProfile()`<br>**AI Service** *(gRPC)*<br>　`deriveCriteriaFromDescription()`<br>　`generateInterviewQuestions()`<br>**Compliance & Insights Service**<br>　`recordPipelineEvent()`<br>**Email Adapter**<br>　`sendEmail()` |
+| **Hiring Service**<br><br>*owns: job openings, criteria,<br>screening batches and entry status,<br>scores and overrides, shortlist<br>decisions, interview guides*<br><br>UC-1 · UC-2 · UC-3 | `proposeJobOpening()`<br>`createJobOpening()`<br>`reviseScreeningCriteria()`<br>`getScreeningCriteria()`<br>`getJobOpening()`<br>`listJobOpenings()`<br>`pauseOpening()`<br>`resumeOpening()`<br>`closeOpening()`<br>`submitScreeningBatch()`<br>`getBatchStatus()`<br>`getRankedResults()`<br>`getScreeningResult()`<br>`overrideScore()`<br>`shortlistCandidate()`<br>`generateInterviewGuide()`<br>`reviseGuide()`<br>`getInterviewGuide()`<br>`recordInterviewNote()`<br>`reportScreeningResult()` *(consumes `screening.completed`)*<br>`eraseHiringData()` | **Object Storage Adapter**<br>　`storeResumeFile()`<br>**Message broker** *(RabbitMQ)*<br>　publish `screening.requested`<br>　　*(one per resume; carries the criteria snapshot)*<br>　publish pipeline events on `pipeline.events`<br>　　*(ADR-015; not built yet)*<br>**Resume Processing Service**<br>　`getCandidateProfile()`<br>**AI Service** *(gRPC)*<br>　`deriveCriteriaFromDescription()`<br>　`generateInterviewQuestions()`<br>**Email Adapter**<br>　`sendEmail()` |
 | **Resume Processing Service**<br><br>*owns: candidate identity and<br>collection date, candidate profiles,<br>parsed resume text, per-criterion<br>scoring output and justifications*<br><br>UC-2 (per-resume work) | `submitResumeForScreening()` *(consumes `screening.requested`)*<br>`getCandidateProfile()`<br>`listCandidateProfiles()`<br>`listUnparsableResumes()`<br>`eraseCandidateProfile()` | **Object Storage Adapter**<br>　`fetchResumeFile()`<br>**AI Service** *(gRPC)*<br>　`extractProfileFromText()`<br>　`scoreAgainstCriteria()`<br>**Message broker** *(RabbitMQ)*<br>　publish `screening.completed`<br>　　*(one per resume, whatever the outcome)* |
 | **AI Service**<br><br>*owns: prompts and model credentials<br>— no domain data*<br><br>UC-1 · UC-2 · UC-3 | `deriveCriteriaFromDescription()`<br>`extractProfileFromText()`<br>`scoreAgainstCriteria()`<br>`generateInterviewQuestions()` | **LLM Adapter**<br>　`complete()` |
-| **Compliance & Insights Service**<br><br>*owns: retention policy, pipeline<br>metrics, erasure and access audit logs*<br><br>UC-4 · UC-5 | `setRetentionPolicy()`<br>`evaluateRetention()`<br>`listHeldExpiries()`<br>`resolveHeldExpiry()`<br>`eraseCandidate()`<br>`getErasureAudit()`<br>`getPipelineDashboard()`<br>`evaluateStaleness()`<br>`recordPipelineEvent()`<br>`recordAuthorisationRejected()` | **Hiring Service**<br>　`eraseHiringData()`<br>**Resume Processing Service**<br>　`eraseCandidateProfile()`<br>　`listCandidateProfiles()`<br>**Email Adapter**<br>　`sendEmail()` |
+| **Compliance & Insights Service**<br><br>*owns: retention policy, pipeline<br>metrics, erasure and access audit logs*<br><br>UC-4 · UC-5 | `setRetentionPolicy()`<br>`evaluateRetention()`<br>`listHeldExpiries()`<br>`resolveHeldExpiry()`<br>`eraseCandidate()`<br>`getErasureAudit()`<br>`getPipelineDashboard()`<br>`evaluateStaleness()`<br>`recordPipelineEvent()` *(consumes `pipeline.events`)*<br>`recordAuthorisationRejected()` | **Hiring Service**<br>　`eraseHiringData()`<br>**Resume Processing Service**<br>　`eraseCandidateProfile()`<br>　`listCandidateProfiles()`<br>**Email Adapter**<br>　`sendEmail()` |
 
 **API Gateway** is the entry point, not a domain service. It terminates TLS, routes, rate-limits,
 and resolves the caller's role from the access token, whose signature and expiry it verifies
@@ -25,8 +25,9 @@ It is also the **only** place a token is checked: the services behind it do not 
 receive, because the deployment keeps them on a private network (**ADR-010**). That is what makes
 publishing anything but the gateway unsafe.
 
-**External systems**, each behind an adapter: Object / Blob Storage, LLM Provider (reached only by
-AI Service), Email Provider. PDF text extraction is an in-process library in Resume Processing,
+**External systems**, each behind an adapter: LLM Provider (reached only by AI Service), Email
+Provider. **Object storage is not one of them:** each deployment runs its own MinIO server, which
+Hiring and Resume Processing reach through their Object Storage Adapters over the S3 API (ADR-014). PDF text extraction is an in-process library in Resume Processing,
 not an external service — a scanned image with no text layer is a permanent failure by design
 (FR-2.7), not something to send to an OCR provider.
 
@@ -75,7 +76,7 @@ plausible wrong profile is scored with confidence. The profile is extracted once
 stored; scoring happens once per resume per job opening.
 
 **The dashboard is a projection, not a query.** Compliance & Insights maintains its own view of
-open positions from the `recordPipelineEvent()` calls Hiring makes as things happen, and does not
+open positions from the pipeline events Hiring publishes as things happen (ADR-015), and does not
 call `getJobOpening()` to build it. ADR-001 records that metrics span services and must be
 maintained incrementally.
 
@@ -83,14 +84,13 @@ maintained incrementally.
 
 Recorded here so they are not settled by implementation:
 
-- **Erasure is orchestrated.** Compliance & Insights calls `eraseHiringData()` and
-  `eraseCandidateProfile()` and tracks completion. That is a real answer to the erasure-cascade
-  question — orchestration over choreography — and it needs an ADR before it is built.
+- ~~**Erasure is orchestrated.**~~ Answered by ADR-016: Compliance & Insights calls
+  `eraseHiringData()` and `eraseCandidateProfile()`, and an erasure stays pending until both
+  confirm.
 - **The candidate register sits in Resume Processing**, alongside the profile, rather than being
   split from it. Also unrecorded.
-- **Pipeline events are pushed, not published.** The broker carries only the screening handover
-  (ADR-013); Hiring calls `recordPipelineEvent()` directly, which makes Compliance a synchronous
-  dependency of Hiring's write path and gives a lost call no retry story. Publishing them on the
-  broker is the obvious alternative now that one exists. Needs an ADR before it is built.
+- ~~**Pipeline events are pushed, not published.**~~ Answered by ADR-015: Hiring publishes them
+  on `pipeline.events` and Compliance consumes them, so Compliance is no longer in Hiring's write
+  path.
 - ~~**Interview guides are owned by Hiring but are AI-derived documents.**~~ Answered by
   ADR-011: Hiring has a MongoDB database of its own, and guides live in it.

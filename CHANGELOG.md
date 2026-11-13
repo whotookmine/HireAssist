@@ -15,6 +15,52 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-11-13 18:50 — Compliance & Insights Service built; ADR-015, ADR-016, ADR-017
+
+- **ADR-015 (Accepted): pipeline events travel on RabbitMQ** (`pipeline.events`), not REST, so
+  Compliance is out of Hiring's write path and no event is lost. The contract is
+  `services/compliance/MESSAGES.md`.
+- **ADR-016 (Accepted): Compliance orchestrates erasure.** It asks Hiring and Resume Processing in
+  turn, and the erasure stays *pending* until both confirm (FR-5.8). Hiring's success is a `204`
+  only, so a missing route is never read as "erased".
+- **ADR-017 (Accepted): both sweeps run on a timer inside Compliance**, under a PostgreSQL advisory
+  lock. The System Scheduler is a component there, not a container, and is removed from the C4
+  container diagram.
+- These answer the erasure-cascade and scheduler candidates, which have left CONTEXT and the ADR
+  index. The SOC table's two "needs an ADR" notes are struck through, and OVERVIEW, ARCHITECTURE,
+  README and PROPOSAL's ADR table now match. The owner chose Go under ADR-005, for the same layout
+  as Hiring.
+- **A paused opening is excluded from staleness**, as UC-4's alternate flow 4a says. The sweep
+  clears its flag.
+- **There is no default retention policy:** until an Admin sets one, nothing expires. A candidate
+  linked to an opening Compliance has never heard of is held for a decision rather than erased.
+- **Outstanding:**
+  - Hiring must publish the events and serve `DELETE /candidates/{id}`.
+  - The gateway must route `/compliance/*` and report rejections.
+  - The web app has no UC-4, UC-5 or UC-6 screens.
+  - What "anonymise" keeps at a holder is still open (ADR-016).
+
+## 2026-11-13 00:40 — C4 Level 1 and Level 2 diagrams; ADR-014 self-hosted MinIO
+
+- **Added `docs/diagrams/c4-context.puml` and `c4-container.puml`** (C4-PlantUML, rendered to PNG)
+  for the final submission's System Context and Container views. Their sources are text, so they
+  can be reviewed and kept in step with the SOC table, unlike the draw.io v1.
+- **Drawing choices that state a position:** the Compliance & Insights Service, its database and
+  the System Scheduler are drawn dashed as *planned*, because they are designed but not built and no
+  technology has been chosen. MinIO is a container, not an external system, because the team runs
+  it. Each MongoDB database is its own container because a container shows ownership, not servers.
+  The gateway does not route to Resume Processing, following compose and v2.
+- **ADR-014 (Accepted): every deployment runs its own MinIO for resume files, in production too,
+  never Amazon S3.** ADR-003 had said only "S3-compatible; MinIO locally". Keeping the most
+  sensitive candidate data inside the deployment adds no cloud processor under PDPA, and local and
+  production run the same store. The cost is that durability, backups and encryption at rest are
+  now ours. The SOC table, ARCHITECTURE.md and the proposal docx builder no longer call object
+  storage external; the INDEX and PROPOSAL tables carry the new row.
+- **Outstanding:** two points in the documents disagree with these diagrams. OVERVIEW says the
+  gateway routes to Resume Processing, and OVERVIEW calls the Scheduler an internal trigger while v2 draws it as its own service. The diagrams are not
+  yet linked from ARCHITECTURE.md. ADR-014 asks for the MinIO image to be pinned rather than
+  `latest`, and for the v2 diagram to stop implying that object storage is external.
+
 ## 2026-10-17 23:30 — ADR-013: the broker carries the screening handover; design version 2
 
 - **Two records renumbered after upstream took ADR-010 and ADR-011** (gateway-only verification,
