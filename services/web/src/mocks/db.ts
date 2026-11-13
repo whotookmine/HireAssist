@@ -1,7 +1,7 @@
 // In-memory stand-in for the services behind the Gateway. Every record is synthetic — no real
 // resume or candidate data, ever (PDPA). Reset to the seed with resetDb() or a page reload.
 
-import type { Classification, Criterion, InterviewGuide, JobOpening, Role } from '../api/types'
+import type { AccessRejection, Classification, Criterion, Erasure, HeldExpiry, InterviewGuide, JobOpening, RetentionPolicy, Role } from '../api/types'
 
 export interface MockMember {
   id: string
@@ -9,6 +9,10 @@ export interface MockMember {
   role: Role
   password: string
   temporaryPassword: boolean
+  createdAt: string
+  updatedAt: string
+  /** Kept after removal so past records still name the member (FR-6.2). */
+  removedAt: string | null
 }
 
 export interface MockEntry {
@@ -65,6 +69,13 @@ export const db = {
   batches: [] as MockBatch[],
   results: [] as MockResult[],
   guides: [] as InterviewGuide[],
+  /** Compliance & Insights: null until an Admin sets a policy, as in the service. */
+  policy: null as RetentionPolicy | null,
+  heldExpiries: [] as HeldExpiry[],
+  erasures: [] as Erasure[],
+  rejections: [] as AccessRejection[],
+  /** Openings the staleness sweep has flagged → when. */
+  flaggedAt: new Map<string, string>(),
   /** Access tokens issued → member id. Clearing it expires every access token at once. */
   tokens: new Map<string, string>(),
   /** Live refresh tokens → member id. Each is used once (ADR-009). */
@@ -167,8 +178,8 @@ export function screen(fileName: string, criteria: Criterion[]) {
 function seed() {
   db.members = [
     // The same synthetic members as the Identity Service's demo seed.
-    { id: '00000000-0000-4000-8000-000000000001', email: 'nok@acme.example', role: 'admin', password: 'nok-admin-demo-password', temporaryPassword: false },
-    { id: '00000000-0000-4000-8000-000000000002', email: 'somchai@acme.example', role: 'recruiter', password: 'somchai-recruiter-password', temporaryPassword: false },
+    { id: '00000000-0000-4000-8000-000000000001', email: 'nok@acme.example', role: 'admin', password: 'nok-admin-demo-password', temporaryPassword: false, createdAt: '2026-09-01T02:00:00Z', updatedAt: '2026-09-01T02:00:00Z', removedAt: null },
+    { id: '00000000-0000-4000-8000-000000000002', email: 'somchai@acme.example', role: 'recruiter', password: 'somchai-recruiter-password', temporaryPassword: false, createdAt: '2026-09-01T02:00:00Z', updatedAt: '2026-09-01T02:00:00Z', removedAt: null },
   ]
 
   const backend: JobOpening = {
@@ -243,6 +254,15 @@ function seed() {
   if (best) best.shortlisted = true
 
   db.guides = []
+
+  // UC-5: no policy yet, one expiry held on the open backend opening, one refused request logged.
+  db.policy = null
+  db.heldExpiries = [{ candidate_id: 'cd_seed_2', job_opening_id: backend.id, expires_at: '2026-11-01T00:00:00Z', held_at: '2026-11-01T01:00:00Z' }]
+  db.erasures = []
+  db.rejections = [
+    { id: 'acc_seed_1', member_id: '00000000-0000-4000-8000-000000000002', role: 'Recruiter', required_role: 'Admin', method: 'GET', path: '/members', occurred_at: '2026-11-10T04:12:00Z' },
+  ]
+  db.flaggedAt.clear()
   db.tokens.clear()
   db.refreshTokens.clear()
   db.refreshCookie = null

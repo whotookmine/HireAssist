@@ -1,9 +1,18 @@
 // One function per Gateway call. Each names the operation it reaches in the
 // Service–Operations–Collaborators table, so a screen can be traced to the service behind it.
 
-import { api, COOKIE_TRANSPORT } from './client'
+import { api, ApiError, COOKIE_TRANSPORT } from './client'
 import type {
+  AccessRejection,
   Criterion,
+  Erasure,
+  ErasureStatus,
+  HeldExpiry,
+  HoldDecision,
+  Member,
+  PipelineOpening,
+  RetentionPolicy,
+  Role,
   InterviewGuide,
   JobOpening,
   JobOpeningDraft,
@@ -147,3 +156,76 @@ export const recordInterviewNote = (
     method: 'PUT',
     json: { note },
   })
+
+// ── UC-4 → Compliance & Insights ──────────────────────────────────────────────────────────
+
+/** Compliance.getPipelineDashboard() (FR-4.1) */
+export const getPipelineDashboard = () =>
+  api<{ openings: PipelineOpening[] }>('/compliance/dashboard').then((d) => d.openings)
+
+/** Compliance.evaluateStaleness() now, rather than at the next scheduled sweep. Admin only. */
+export const runStalenessSweep = () =>
+  api<{ flagged: string[]; cleared: string[] }>('/compliance/sweeps/staleness', { method: 'POST' })
+
+// ── UC-5 → Compliance & Insights ──────────────────────────────────────────────────────────
+
+/** Compliance's retention policy; null until an Admin sets one (the service answers 404). */
+export const getRetentionPolicy = () =>
+  api<RetentionPolicy>('/compliance/retention-policy').catch((err) => {
+    if (err instanceof ApiError && err.status === 404 && !err.notServed) return null
+    throw err
+  })
+
+/** Compliance.setRetentionPolicy() (FR-5.1). Admin only. */
+export const setRetentionPolicy = (policy: RetentionPolicy) =>
+  api<RetentionPolicy>('/compliance/retention-policy', { method: 'PUT', json: policy })
+
+/** Compliance.listHeldExpiries() (FR-5.6) */
+export const listHeldExpiries = () =>
+  api<{ held_expiries: HeldExpiry[] }>('/compliance/held-expiries').then((d) => d.held_expiries)
+
+/** Compliance.resolveHeldExpiry(): "erase" answers with the erasure, "keep" with the decision. */
+export const resolveHeldExpiry = (candidateId: string, decision: HoldDecision) =>
+  api<Erasure | { decision: HoldDecision }>(`/compliance/held-expiries/${encodeURIComponent(candidateId)}`, {
+    method: 'POST',
+    json: { decision },
+  })
+
+/** Compliance.eraseCandidate() now (FR-5.7). Admin only. Pending until every holder confirms. */
+export const eraseCandidate = (candidateId: string) =>
+  api<Erasure>('/compliance/erasures', { method: 'POST', json: { candidate_id: candidateId } })
+
+/** Compliance.getErasureAudit() (FR-5.5). Admin only. */
+export const listErasures = (status?: ErasureStatus) =>
+  api<{ erasures: Erasure[] }>(`/compliance/erasures${status ? `?status=${status}` : ''}`).then((d) => d.erasures)
+
+/** Compliance.evaluateRetention() now. Admin only. */
+export const runRetentionSweep = () =>
+  api<{ policy_set: boolean; evaluated: number; warned: string[]; erasures: string[]; held: string[] }>(
+    '/compliance/sweeps/retention',
+    { method: 'POST' },
+  )
+
+/** The access audit log: requests refused for want of a role (FR-0.4). Admin only. */
+export const listAccessRejections = () =>
+  api<{ rejections: AccessRejection[] }>('/compliance/access-audit').then((d) => d.rejections)
+
+// ── UC-6 → Identity ───────────────────────────────────────────────────────────────────────
+
+/** Identity.listMembers(): active members only (FR-6.5). Admin only. */
+export const listMembers = () => api<Member[]>('/members')
+
+/** Identity.createMember(), with a temporary password the member must replace (FR-6.1, FR-0.5). */
+export const createMember = (email: string, password: string, role: Role) =>
+  api<Member>('/members', { method: 'POST', json: { email, password, role } })
+
+/** Identity.changeMemberRole() — refused when it would leave no active Admin (FR-6.3). */
+export const changeMemberRole = (id: string, role: Role) =>
+  api<Member>(`/members/${id}`, { method: 'PATCH', json: { role } })
+
+/** Identity.setMemberPassword(): a new temporary password, ending the member's sessions (FR-6.4). */
+export const setMemberPassword = (id: string, password: string) =>
+  api<Member>(`/members/${id}/password`, { method: 'PUT', json: { password } })
+
+/** Identity.removeMember() — refused for the last active Admin (FR-6.3). */
+export const removeMember = (id: string) => api<void>(`/members/${id}`, { method: 'DELETE' })

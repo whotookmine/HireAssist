@@ -25,6 +25,17 @@ export function Layout() {
               <Button component={Link} to="/job-openings" variant="subtle" visibleFrom="sm">
                 {t('nav.jobOpenings')}
               </Button>
+              <Button component={Link} to="/pipeline" variant="subtle" visibleFrom="sm">
+                {t('nav.pipeline')}
+              </Button>
+              <Button component={Link} to="/retention" variant="subtle" visibleFrom="sm">
+                {t('nav.retention')}
+              </Button>
+              {member?.role === 'admin' && (
+                <Button component={Link} to="/members" variant="subtle" visibleFrom="sm">
+                  {t('nav.members')}
+                </Button>
+              )}
             </Group>
             <Group gap="sm" wrap="nowrap">
               <SegmentedControl

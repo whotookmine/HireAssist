@@ -43,7 +43,7 @@ Term project for **Software Architecture**, Chulalongkorn University.
 | [services/gateway/](services/gateway/) | **Code.** The API Gateway — Go. Routing, local token verification (ADR-009), the role gate and rate limiting. |
 | [proto/](proto/) | Shared gRPC contracts. Callers generate clients from these. |
 | [services/compliance/](services/compliance/) | **Code.** The Compliance & Insights Service — Go, PostgreSQL, a RabbitMQ consumer. Retention policy, sweeps and orchestrated erasure (UC-5), the pipeline dashboard and stale-position flags (UC-4), the access audit log. Reached through the gateway; fed by Hiring's pipeline events, and erases through Hiring and Resume Processing. |
-| [services/web/](services/web/) | **Code.** The HireAssist Web UI — React, TypeScript, Mantine. Sign-in and UC-1 to UC-3, against the gateway or on a mock backend in the browser. |
+| [services/web/](services/web/) | **Code.** The HireAssist Web UI — React, TypeScript, Mantine. Sign-in and UC-1 to UC-6, against the gateway or on a mock backend in the browser. |
 | [docs/OVERVIEW.md](docs/OVERVIEW.md) | Runtime view — what each service owns, who calls whom, and the call sequence behind each use case. |
 | `docs/build-proposal-docx.py`, `docs/adr/build-docx.py` | Build the two Word deliverables. The documents themselves are generated, not committed. |
 | [docs/CONTEXT.md](docs/CONTEXT.md) | Internal working notes — open questions, open decisions, glossary. Not for submission. |

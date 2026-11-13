@@ -1,15 +1,17 @@
 # HireAssist Web UI
 
 The one web application for every signed-in role. It covers UC-0 (sign in), UC-1 (create a job
-opening), UC-2 (batch screening) and UC-3 (interview guides). It talks only to the API Gateway
+opening), UC-2 (batch screening), UC-3 (interview guides), UC-4 (the pipeline dashboard), UC-5
+(retention and erasure) and UC-6 (members and roles). It talks only to the API Gateway
 (ADR-001). It never reaches a service directly, and never the AI Service (ADR-004, ADR-007).
 
 React 19 + TypeScript, built with Vite; Mantine for components; TanStack Query for server state;
 MSW for the mock backend. English and Thai (NFR-16).
 
 **Status:** every screen works against the real Gateway — sign-in (including replacing a
-temporary password), job openings with AI-proposed criteria, batch screening and interview
-guides — and against a **mock backend** that runs in the browser, so no service is needed to run,
+temporary password), job openings with AI-proposed criteria, batch screening, interview guides,
+the pipeline dashboard, retention and erasure, and member management — and against a **mock
+backend** that runs in the browser, so no service is needed to run,
 demo or test it. Both follow the services' published contracts, see [Contracts](#contracts).
 
 ## Run it
@@ -107,6 +109,10 @@ Every shape in `src/api/types.ts` is copied from the service that owns it.
 | `GET /job-openings/{id}/results?min_score=&criterion=` | `getRankedResults()` | 〃 |
 | `GET /job-openings/{id}/results/{resumeId}` · `POST …/override` · `POST …/shortlist` | `getScreeningResult()`, `overrideScore()`, `shortlistCandidate()` | 〃 |
 | `GET/POST /job-openings/{id}/candidates/{cid}/interview-guide` · `POST …/regenerate` · `PUT …/questions` · `PUT …/questions/{qid}/note` | `getInterviewGuide()`, `generateInterviewGuide()`, `reviseGuide()`, `recordInterviewNote()` | 〃 — needs Resume Processing and the AI Service behind Hiring; without them it answers 502 |
+| `GET /compliance/dashboard` · `POST /compliance/sweeps/staleness` | `getPipelineDashboard()`, `evaluateStaleness()` (Admin) | The Compliance & Insights Service's README |
+| `GET/PUT /compliance/retention-policy` · `GET /compliance/held-expiries` · `POST …/held-expiries/{cid}` | `setRetentionPolicy()` (Admin), `listHeldExpiries()`, `resolveHeldExpiry()` | 〃 — the policy is 404 until an Admin sets one |
+| `POST/GET /compliance/erasures` · `POST /compliance/sweeps/retention` · `GET /compliance/access-audit` | `eraseCandidate()`, `getErasureAudit()`, `evaluateRetention()`, the access audit log — all Admin | 〃 — an erasure answers 200 erased or 202 pending |
+| `GET/POST /members` · `PATCH /members/{id}` · `PUT …/password` · `DELETE /members/{id}` | `listMembers()`, `createMember()`, `changeMemberRole()`, `setMemberPassword()`, `removeMember()` — Admin | The Identity Service's README |
 
 How the app works within that contract:
 
@@ -125,7 +131,13 @@ How the app works within that contract:
 - **Shortlisting gates the interview guide** in the app and the mock, as UC-3's precondition says.
   The Hiring Service does not check it yet.
 - **Candidates are shown by file name.** Nothing the app receives carries a name or contact
-  details, so the resume's file name is the only label.
+  details, so the resume's file name is the only label. Retention and erasure show the candidate
+  id for the same reason, and an erased candidate only by the erasure's reference (FR-5.5).
+- **Admin-only screens are hidden from a Recruiter**: the Members page, and the policy, erasure
+  and audit tabs of Retention. The gateway refuses the calls regardless (FR-0.4); hiding them only
+  spares a Recruiter the 403. The mock's gateway records those refusals in the audit log too.
+- **The mock's dashboard is computed from its own openings and results**, so its counts agree
+  with the screening screens. Its erasures finish at once; the real service's may stay pending.
 
 When a service changes its contract, change `types.ts`, the matching handler in
 `src/mocks/handlers.ts`, and the screen. The type checker will point at the screen.

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { Role } from '../api/types'
 import { App } from '../App'
 import { db } from '../mocks/db'
 
@@ -10,11 +11,12 @@ export function renderApp(path = '/') {
   return { user, ...render(<App language="en" />) }
 }
 
-/** Renders the app already signed in as the demo recruiter, through the refresh cookie (ADR-009). */
-export async function renderSignedIn(path: string) {
-  db.refreshTokens.set('rt_test', db.members.find((m) => m.role === 'recruiter')!.id)
+/** Renders the app already signed in as a demo member — the recruiter unless asked — through the refresh cookie (ADR-009). */
+export async function renderSignedIn(path: string, role: Role = 'recruiter') {
+  const member = db.members.find((m) => m.role === role)!
+  db.refreshTokens.set('rt_test', member.id)
   db.refreshCookie = 'rt_test'
   const result = renderApp(path)
-  await screen.findByText('somchai@acme.example')
+  await screen.findByText(member.email)
   return result
 }

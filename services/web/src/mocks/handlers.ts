@@ -6,6 +6,11 @@
 import { delay, http, HttpResponse, type HttpResponseResolver } from 'msw'
 import type {
   Criterion,
+  Erasure,
+  Member,
+  PipelineOpening,
+  RetentionPolicy,
+  Role,
   EntryStatus,
   InterviewGuide,
   InterviewQuestion,
@@ -259,13 +264,103 @@ function validDrafts(drafts: unknown): drafts is QuestionDraft[] {
 
 // ── Handlers ──────────────────────────────────────────────────────────────────────────────
 
+/**
+ * The Gateway's role gate: an Admin route refuses a Recruiter with 403 and records the refusal
+ * in Compliance's access audit log (FR-0.4), as the real gateway does.
+ */
+function adminOnly(handler: (info: ResolverInfo) => Response | Promise<Response>): HttpResponseResolver {
+  return guarded((info) => {
+    const token = info.request.headers.get('Authorization')!.replace(/^Bearer /, '')
+    const member = db.members.find((m) => m.id === db.tokens.get(token))!
+    if (member.role !== 'admin') {
+      db.rejections.unshift({
+        id: newId('acc'),
+        member_id: member.id,
+        role: 'Recruiter',
+        required_role: 'Admin',
+        method: info.request.method,
+        path: new URL(info.request.url).pathname.replace(API_BASE, ''),
+        occurred_at: new Date().toISOString(),
+      })
+      return error(403, 'this route needs the admin role')
+    }
+    return handler(info)
+  })
+}
+
+const DAY_MS = 86_400_000
+
+/** Compliance's projection, computed from the mock's own openings so the numbers agree. */
+function pipelineRows(): PipelineOpening[] {
+  return db.openings
+    .filter((o) => o.status !== 'closed')
+    .map((o) => {
+      const results = db.results.filter((r) => r.jobOpeningId === o.id)
+      return {
+        job_opening_id: o.id,
+        title: o.title,
+        status: o.status,
+        applied: db.batches.filter((b) => b.jobOpeningId === o.id).reduce((n, b) => n + b.entries.length, 0),
+        screened: results.length,
+        shortlisted: results.filter((r) => r.shortlisted).length,
+        days_open: Math.floor((Date.now() - Date.parse(o.opened_at)) / DAY_MS),
+        expected_time_to_fill_days: o.expected_time_to_fill_days,
+        flagged: db.flaggedAt.has(o.id),
+        flagged_at: db.flaggedAt.get(o.id) ?? null,
+      }
+    })
+}
+
+/** Both holders confirm at once in the mock, so an erasure finishes as soon as it starts. */
+function erase(candidateId: string, reason: Erasure['reason']): Erasure {
+  db.results = db.results.filter((r) => r.candidateId !== candidateId)
+  db.guides = db.guides.filter((g) => g.candidate_id !== candidateId)
+  db.heldExpiries = db.heldExpiries.filter((h) => h.candidate_id !== candidateId)
+  const now = new Date().toISOString()
+  const erasure: Erasure = {
+    ref: newId('era'),
+    status: 'erased',
+    reason,
+    expiry_action: db.policy?.expiry_action ?? 'delete',
+    policy_period_days: db.policy?.period_days ?? 0,
+    requested_at: now,
+    completed_at: now,
+    holders: { hiring: 'erased', resume_processing: 'erased' },
+    attempts: 1,
+    last_error: '',
+    last_tried_at: now,
+  }
+  db.erasures.unshift(erasure)
+  return erasure
+}
+
+const toMember = (m: (typeof db.members)[number]): Member => ({
+  id: m.id,
+  email: m.email,
+  role: m.role,
+  temporary_password: m.temporaryPassword,
+  created_at: m.createdAt,
+  updated_at: m.updatedAt,
+  removed_at: m.removedAt,
+})
+
+const activeAdmins = () => db.members.filter((m) => m.role === 'admin' && !m.removedAt)
+
+/** Ends every session a member holds, as Identity does on a password reset or removal. */
+function endSessions(memberId: string) {
+  for (const [token, id] of db.refreshTokens) if (id === memberId) db.refreshTokens.delete(token)
+  for (const [token, id] of db.tokens) if (id === memberId) db.tokens.delete(token)
+}
+
+const findActiveMember = (id: unknown) => db.members.find((m) => m.id === id)
+
 export const handlers = [
   // Auth → Identity (ADR-009)
   http.post(`${API_BASE}/auth/sign-in`, async ({ request }) => {
     await wait()
     const { email, password } = await readJson<{ email: string; password: string }>(request)
     const member = db.members.find((m) => m.email === email?.trim().toLowerCase())
-    if (!member || member.password !== password) return error(401, 'email or password is wrong')
+    if (!member || member.removedAt || member.password !== password) return error(401, 'email or password is wrong')
     if (member.temporaryPassword) return error(403, 'the temporary password must be replaced before signing in')
     return HttpResponse.json(issueSession(member.id, request))
   }),
@@ -620,6 +715,154 @@ export const handlers = [
       else delete question.note
       guide.updated_at = new Date().toISOString()
       return HttpResponse.json(guide)
+    }),
+  ),
+
+  // UC-4 → Compliance & Insights
+  http.get(`${API_BASE}/compliance/dashboard`, guarded(() => HttpResponse.json({ openings: pipelineRows() }))),
+
+  http.post(
+    `${API_BASE}/compliance/sweeps/staleness`,
+    adminOnly(() => {
+      const flagged: string[] = []
+      const cleared: string[] = []
+      for (const row of pipelineRows()) {
+        const stale = row.status === 'open' && row.days_open > row.expected_time_to_fill_days
+        if (stale && !db.flaggedAt.has(row.job_opening_id)) {
+          db.flaggedAt.set(row.job_opening_id, new Date().toISOString())
+          flagged.push(row.job_opening_id)
+        } else if (!stale && db.flaggedAt.delete(row.job_opening_id)) {
+          cleared.push(row.job_opening_id)
+        }
+      }
+      return HttpResponse.json({ flagged, cleared })
+    }),
+  ),
+
+  // UC-5 → Compliance & Insights
+  http.get(
+    `${API_BASE}/compliance/retention-policy`,
+    adminOnly(() => (db.policy ? HttpResponse.json(db.policy) : error(404, 'not found'))),
+  ),
+
+  http.put(
+    `${API_BASE}/compliance/retention-policy`,
+    adminOnly(async ({ request }) => {
+      const p = await readJson<RetentionPolicy>(request)
+      if (!p.period_days || p.period_days < 1) return error(400, 'invalid retention policy: the period must be at least one day')
+      if (p.warning_window_days === undefined || p.warning_window_days < 0 || p.warning_window_days >= p.period_days)
+        return error(400, 'invalid retention policy: the warning window must be shorter than the period')
+      if (p.anchor !== 'collected' && p.anchor !== 'last_activity') return error(400, 'invalid retention policy: unknown anchor')
+      if (p.expiry_action !== 'delete' && p.expiry_action !== 'anonymise') return error(400, 'invalid retention policy: unknown expiry action')
+      db.policy = { period_days: p.period_days, anchor: p.anchor, expiry_action: p.expiry_action, warning_window_days: p.warning_window_days, updated_at: new Date().toISOString() }
+      return HttpResponse.json(db.policy)
+    }),
+  ),
+
+  http.get(`${API_BASE}/compliance/held-expiries`, guarded(() => HttpResponse.json({ held_expiries: db.heldExpiries }))),
+
+  http.post(
+    `${API_BASE}/compliance/held-expiries/:candidateId`,
+    guarded(async ({ params, request }) => {
+      const { decision } = await readJson<{ decision: string }>(request)
+      const hold = db.heldExpiries.find((h) => h.candidate_id === params.candidateId)
+      if (!hold) return error(404, 'not found')
+      if (decision === 'erase') return HttpResponse.json(erase(hold.candidate_id, 'hold_resolved'))
+      if (decision !== 'keep') return error(400, 'decision must be erase or keep')
+      db.heldExpiries = db.heldExpiries.filter((h) => h !== hold) // asked again after the warning window
+      return HttpResponse.json({ decision })
+    }),
+  ),
+
+  http.post(
+    `${API_BASE}/compliance/erasures`,
+    adminOnly(async ({ request }) => {
+      const { candidate_id } = await readJson<{ candidate_id: string }>(request)
+      if (!candidate_id?.trim()) return error(400, 'invalid erasure: a candidate id is required')
+      return HttpResponse.json(erase(candidate_id.trim(), 'requested'))
+    }),
+  ),
+
+  http.get(
+    `${API_BASE}/compliance/erasures`,
+    adminOnly(({ request }) => {
+      const status = new URL(request.url).searchParams.get('status')
+      return HttpResponse.json({ erasures: status ? db.erasures.filter((e) => e.status === status) : db.erasures })
+    }),
+  ),
+
+  http.post(
+    `${API_BASE}/compliance/sweeps/retention`,
+    adminOnly(() =>
+      HttpResponse.json({ policy_set: db.policy !== null, evaluated: db.policy ? db.results.length : 0, warned: [], erasures: [], held: [] }),
+    ),
+  ),
+
+  http.get(`${API_BASE}/compliance/access-audit`, adminOnly(() => HttpResponse.json({ rejections: db.rejections }))),
+
+  // UC-6 → Identity
+  http.get(`${API_BASE}/members`, adminOnly(() => HttpResponse.json(db.members.filter((m) => !m.removedAt).map(toMember)))),
+
+  http.post(
+    `${API_BASE}/members`,
+    adminOnly(async ({ request }) => {
+      const body = await readJson<{ email: string; password: string; role: Role }>(request)
+      const email = body.email?.trim().toLowerCase() ?? ''
+      const details: string[] = []
+      if (!/^[^@\s]+@[^@\s]+$/.test(email)) details.push('email must be a plain address such as ploy@acme.example')
+      if ((body.password ?? '').length < 15) details.push('password must be at least 15 characters')
+      if (body.role !== 'admin' && body.role !== 'recruiter') details.push('role must be admin or recruiter')
+      if (details.length) return HttpResponse.json({ error: 'invalid member', details }, { status: 400 })
+      if (db.members.some((m) => m.email === email && !m.removedAt)) return error(409, 'a member with this email already exists')
+      const now = new Date().toISOString()
+      const member = { id: crypto.randomUUID(), email, role: body.role!, password: body.password!, temporaryPassword: true, createdAt: now, updatedAt: now, removedAt: null }
+      db.members.push(member)
+      return HttpResponse.json(toMember(member), { status: 201 })
+    }),
+  ),
+
+  http.patch(
+    `${API_BASE}/members/:id`,
+    adminOnly(async ({ params, request }) => {
+      const member = findActiveMember(params.id)
+      if (!member) return error(404, 'member not found')
+      if (member.removedAt) return error(409, 'the member has been removed')
+      const { role } = await readJson<{ role: Role }>(request)
+      if (role !== 'admin' && role !== 'recruiter') return error(400, 'role must be admin or recruiter')
+      if (member.role === 'admin' && role !== 'admin' && activeAdmins().length === 1)
+        return error(409, 'this would leave no active admin')
+      member.role = role
+      member.updatedAt = new Date().toISOString()
+      return HttpResponse.json(toMember(member))
+    }),
+  ),
+
+  http.put(
+    `${API_BASE}/members/:id/password`,
+    adminOnly(async ({ params, request }) => {
+      const member = findActiveMember(params.id)
+      if (!member) return error(404, 'member not found')
+      if (member.removedAt) return error(409, 'the member has been removed')
+      const { password } = await readJson<{ password: string }>(request)
+      if (!password || password.length < 15) return error(400, 'password must be at least 15 characters')
+      member.password = password
+      member.temporaryPassword = true
+      member.updatedAt = new Date().toISOString()
+      endSessions(member.id)
+      return HttpResponse.json(toMember(member))
+    }),
+  ),
+
+  http.delete(
+    `${API_BASE}/members/:id`,
+    adminOnly(({ params }) => {
+      const member = findActiveMember(params.id)
+      if (!member) return error(404, 'member not found')
+      if (member.removedAt) return error(409, 'the member has been removed')
+      if (member.role === 'admin' && activeAdmins().length === 1) return error(409, 'this would leave no active admin')
+      member.removedAt = member.updatedAt = new Date().toISOString()
+      endSessions(member.id)
+      return new HttpResponse(null, { status: 204 })
     }),
   ),
 ]

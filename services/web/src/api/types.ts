@@ -201,3 +201,85 @@ export interface ErrorBody {
   error: string
   code?: string
 }
+
+// ── Members (REAL — Identity Service, UC-6) ───────────────────────────────────────────────
+
+/** The Identity Service's member record. GET /members lists the active ones (FR-6.5). */
+export interface Member {
+  id: string
+  email: string
+  role: Role
+  /** Set until the member replaces the temporary password an Admin gave them (FR-0.5). */
+  temporary_password: boolean
+  created_at: string
+  updated_at: string
+  removed_at: string | null
+}
+
+// ── Pipeline, retention, audit (REAL — Compliance & Insights Service, UC-4, UC-5) ─────────
+
+/** One row of GET /compliance/dashboard (FR-4.1). Counts come from Hiring's pipeline events. */
+export interface PipelineOpening {
+  job_opening_id: string
+  /** Empty until the opening's opening.opened event arrives. */
+  title: string
+  status: JobOpeningStatus
+  applied: number
+  screened: number
+  shortlisted: number
+  days_open: number
+  expected_time_to_fill_days: number
+  flagged: boolean
+  flagged_at: string | null
+}
+
+export type RetentionAnchor = 'collected' | 'last_activity'
+export type ExpiryAction = 'delete' | 'anonymise'
+
+/** GET/PUT /compliance/retention-policy (FR-5.1). There is none until an Admin sets one. */
+export interface RetentionPolicy {
+  period_days: number
+  anchor: RetentionAnchor
+  expiry_action: ExpiryAction
+  warning_window_days: number
+  updated_at?: string
+}
+
+/** An expiry held because the candidate is in an active hiring process (FR-5.6). */
+export interface HeldExpiry {
+  candidate_id: string
+  job_opening_id: string
+  expires_at: string
+  held_at: string
+}
+
+export type HoldDecision = 'erase' | 'keep'
+export type ErasureStatus = 'pending' | 'erased'
+export type ErasureHolder = 'hiring' | 'resume_processing'
+
+/** An erasure audit entry (FR-5.5). The candidate id is present only while it is pending. */
+export interface Erasure {
+  ref: string
+  status: ErasureStatus
+  reason: 'expired' | 'requested' | 'hold_resolved'
+  expiry_action: ExpiryAction
+  policy_period_days: number
+  requested_at: string
+  completed_at: string | null
+  holders: Record<ErasureHolder, ErasureStatus>
+  attempts: number
+  last_error: string
+  last_tried_at: string | null
+  candidate_id?: string
+}
+
+/** A request the gateway refused for want of a role (FR-0.4). */
+export interface AccessRejection {
+  id: string
+  member_id: string
+  role: string
+  required_role: string
+  method: string
+  path: string
+  occurred_at: string
+}

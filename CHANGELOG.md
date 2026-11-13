@@ -24,6 +24,16 @@ what a session decided, and rewriting it destroys the record of when and why som
   00:40 entry below calls it ADR-014.
 - The index's two ADR-001 rows, one from each branch, are merged into one.
 
+## 2026-11-13 21:00 — Web screens for UC-4, UC-5 and UC-6
+
+- **The web app now covers every active use case.** It has a pipeline dashboard (UC-4), a
+  retention page (UC-5) and a members page (UC-6). Held expiries are on the retention page for
+  either role. The policy, erasures and the access audit log are Admin tabs there, because the
+  audit log has no use case of its own and records the same PDPA trail as erasure.
+- **Admin-only screens are hidden from a Recruiter, but the gateway is still what enforces it.**
+  Hiding them only spares a Recruiter a 403.
+- Outstanding: the batch-finished notice (FR-2.12); what anonymisation keeps at a holder.
+
 ## 2026-11-13 20:05 — Hiring publishes pipeline events and serves its erasure
 
 - **Hiring publishes ADR-015's pipeline events from a transactional outbox.** Each event is
