@@ -6,7 +6,7 @@
 # nok@acme.example / nok-admin-demo-password (admin): the Identity Service's synthetic seed.
 #
 # Published on the host: the web app, the gateway (for Postman), the RabbitMQ and MinIO consoles,
-# and the ports the services' own tests and tools use. Every host port can be moved with a
+# the Mailpit inbox, and the ports the services' own tests and tools use. Every host port can be moved with a
 # variable, for example in a .env file next to this one (which Git ignores):
 #
 #   POSTGRES_PORT=55432
@@ -53,6 +53,30 @@ services:
       interval: 2s
       timeout: 3s
       retries: 15
+
+  # The Compliance & Insights Service's own database: the retention policy, the pipeline
+  # projection, and the erasure and access audit logs.
+  compliance-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: compliance
+      POSTGRES_PASSWORD: compliance
+      POSTGRES_DB: compliance
+    volumes:
+      - compliance-data:/var/lib/postgresql/data
+      - ./services/compliance/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U compliance -d compliance"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  # Catches every email the stack sends, so nothing leaves the machine: read them at
+  # http://localhost:8025. A deployment points SMTP_ADDR at its real Email Provider instead.
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
 
   # One MongoDB server, one database per service: Hiring's interview guides, and Resume
   # Processing's profiles and screenings (ADR-003). Neither reads the other's database.
@@ -185,6 +209,30 @@ services:
       minio:
         condition: service_healthy
 
+  # Retention and erasure (UC-5), the pipeline dashboard and stale-position flags (UC-4), and the
+  # access audit log. Its sweeps run in process every SWEEP_INTERVAL (ADR-017); set
+  # COMPLIANCE_SWEEP_INTERVAL=1m in .env to watch them, or call POST /compliance/sweeps/*.
+  compliance:
+    build: ./services/compliance
+    environment:
+      PORT: "8083"
+      DATABASE_URL: postgres://compliance:compliance@compliance-db:5432/compliance?sslmode=disable
+      RABBITMQ_URL: amqp://hireassist:hireassist@rabbitmq:5672/
+      RESUME_PROCESSING_URL: http://resume-processing:3000
+      HIRING_URL: http://hiring:8080
+      SMTP_ADDR: mailpit:1025
+      NOTIFY_FALLBACK_TO: somchai@acme.example
+      SWEEP_INTERVAL: "${COMPLIANCE_SWEEP_INTERVAL:-1h}"
+    ports:
+      - "${COMPLIANCE_PORT:-8083}:8083"
+    depends_on:
+      compliance-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
   # Creates the development signing key pair on first start, in the jwt-keys volume, and holds
   # the private half (ADR-009). `docker compose down -v` discards it with the data.
   identity:
@@ -272,3 +320,4 @@ volumes:
   jwt-keys:
   rabbitmq-data:
   minio-data:
+  compliance-data:
