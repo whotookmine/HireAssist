@@ -81,6 +81,16 @@ index and the decisions not yet taken in [`docs/adr/INDEX.md`](docs/adr/INDEX.md
 
 ## Repository status
 
+**Documentation, plus five services in progress:** the AI Service, the Identity Service, the
+Hiring Service, the Resume Processing Service and the API Gateway, each with its own README, and
+the web app. `docker compose up -d --build` at the root runs the whole system: the web app on
+http://localhost:4173, the gateway, the Identity, Hiring, Resume Processing and AI services
+(the AI Service with canned answers, so no API key is needed), PostgreSQL, MongoDB, RabbitMQ
+and MinIO. The comments at the top of `docker-compose.yml` list the demo sign-ins and the
+variables that move a host port that is already taken. `deploy/k8s/up.sh` builds the same system
+into a local Kubernetes cluster on kind, where the services find each other through Kubernetes
+Services (ADR-014), with the web app on http://localhost:30080; `deploy/k8s/README.md` explains
+it.
 **Documentation, plus six services in progress:** the AI Service, the Identity Service, the
 Hiring Service, the Resume Processing Service, the Compliance & Insights Service and the API
 Gateway, each with its own README, and the web app. `docker compose up -d --build` at the root runs the whole system: the web app on
@@ -102,6 +112,7 @@ hire-assist/
 ├── .gitignore
 ├── docker-compose.yml       # local stack: every service, datastore and the broker
 ├── deploy/                  # container support files (database init, development signing keys)
+│   └── k8s/                 # Kubernetes manifests, and the scripts that run them on kind
 ├── proto/                   # shared gRPC contracts
 ├── services/
 │   ├── ai-service/          # AI Service (Python, gRPC)

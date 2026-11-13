@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HireAssist service discovery on Kubernetes (ADR-014): how one call finds its target, who keeps
+  the list of Pods behind a name, and why the screening workers need no discovery at all.
+  Render: rsvg-convert -z 2 docs/diagrams/service-discovery.svg -o docs/diagrams/service-discovery.png
+  Green: REST (ADR-001). Purple: RabbitMQ (ADR-013). Blue, dashed: the platform's work.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="600" viewBox="0 0 1240 600"
+     font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#222222">
+  <defs>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#82b366"/>
+    </marker>
+    <marker id="p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9673a6"/>
+    </marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6c8ebf"/>
+    </marker>
+  </defs>
+
+  <rect width="1240" height="600" fill="#ffffff"/>
+
+  <!-- ── The cluster ─────────────────────────────────────────────────────────────────── -->
+  <rect x="10" y="10" width="1220" height="580" rx="12" fill="none" stroke="#888888" stroke-dasharray="6 4"/>
+  <text x="28" y="34" font-size="13" font-weight="bold">kind cluster · namespace hireassist</text>
+
+  <!-- ── Arrows first, so boxes sit on top of their ends ───────────────────────────── -->
+  <!-- ① and ②: the DNS lookup -->
+  <g fill="none" stroke="#6c8ebf" stroke-width="1.3" stroke-dasharray="5 3">
+    <path d="M310,80 H478" marker-end="url(#b)"/>
+    <path d="M480,116 H312" marker-end="url(#b)"/>
+    <!-- the EndpointSlice is what stands behind the Service -->
+    <path d="M645,370 V308" marker-end="url(#b)"/>
+    <!-- readiness probes feed the EndpointSlice -->
+    <path d="M1055,334 V440 H812" marker-end="url(#b)"/>
+  </g>
+  <!-- ③ and ④: the call itself, over REST -->
+  <g fill="none" stroke="#82b366" stroke-width="1.5">
+    <path d="M170,160 V258 H478" marker-end="url(#g)"/>
+    <path d="M810,222 H898" marker-end="url(#g)"/>
+  </g>
+  <!-- the Pod that is not ready is passed over -->
+  <path d="M810,302 H898" fill="none" stroke="#b85450" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <!-- the screening handover: nobody looks the workers up -->
+  <g fill="none" stroke="#9673a6" stroke-width="1.6">
+    <path d="M80,160 V536 H478" marker-end="url(#p)"/>
+    <path d="M900,536 H812" marker-end="url(#p)"/>
+  </g>
+
+  <!-- ── Arrow labels ───────────────────────────────────────────────────────────────── -->
+  <text x="330" y="72">① look up the name</text>
+  <text x="330" y="134">② the Service's virtual IP</text>
+  <text x="190" y="250">③ connect to 10.96.83.20:80</text>
+  <text x="818" y="214">④ a ready Pod</text>
+  <text x="822" y="294" fill="#b85450">✗ passed over</text>
+  <text x="655" y="344">who is behind the name</text>
+  <text x="826" y="418">the kubelet probes every Pod;</text>
+  <text x="826" y="432">the answer sets ready=true/false</text>
+  <text x="100" y="528">publish one message per resume</text>
+  <text x="830" y="528">consume</text>
+
+  <!-- ── The caller ─────────────────────────────────────────────────────────────────── -->
+  <rect x="30" y="60" width="280" height="100" rx="8" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+  <text x="44" y="84" font-size="13" font-weight="bold">Hiring Pod</text>
+  <text x="44" y="106" fill="#555555">RESUME_PROCESSING_URL =</text>
+  <text x="44" y="124" font-family="Menlo, Consolas, monospace" font-size="10.5">http://resume-processing.hireassist.svc</text>
+  <text x="44" y="146" font-style="italic" fill="#555555">a name from configuration, never an address</text>
+
+  <!-- ── The cluster DNS ────────────────────────────────────────────────────────────── -->
+  <rect x="480" y="50" width="330" height="84" rx="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1.2"/>
+  <text x="496" y="74" font-size="13" font-weight="bold">Cluster DNS (CoreDNS)</text>
+  <text x="496" y="96" font-family="Menlo, Consolas, monospace" font-size="10.5">resume-processing.hireassist.svc</text>
+  <text x="496" y="116" font-family="Menlo, Consolas, monospace" font-size="10.5">  → 10.96.83.20 (ClusterIP)</text>
+
+  <!-- ── What is published ──────────────────────────────────────────────────────────── -->
+  <rect x="860" y="50" width="350" height="92" rx="8" fill="#f5f5f5" stroke="#999999" stroke-width="1.2"/>
+  <text x="876" y="72" font-size="12" font-weight="bold">Published outside the cluster (ADR-010)</text>
+  <text x="876" y="92">web → localhost:30080 · gateway → localhost:30800,</text>
+  <text x="876" y="110">both NodePorts. Every other Service is ClusterIP:</text>
+  <text x="876" y="128">reachable from inside the cluster only.</text>
+
+  <!-- ── The Service ────────────────────────────────────────────────────────────────── -->
+  <rect x="480" y="210" width="330" height="96" rx="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1.2"/>
+  <text x="496" y="234" font-size="13" font-weight="bold">Service resume-processing</text>
+  <text x="496" y="254">ClusterIP 10.96.83.20 : 80 → Pod port 3000</text>
+  <text x="496" y="272">one IP for the Service's whole life, while Pods</text>
+  <text x="496" y="290">come and go; kube-proxy picks a ready one</text>
+
+  <!-- ── The Pods behind it ─────────────────────────────────────────────────────────── -->
+  <rect x="900" y="190" width="310" height="64" rx="8" fill="#d5e8d4" stroke="#82b366" stroke-width="1.2"/>
+  <text x="916" y="214" font-size="12" font-weight="bold">Resume Processing Pod A</text>
+  <text x="916" y="236">10.244.0.21 · /readyz 200 · ready ✓</text>
+
+  <rect x="900" y="270" width="310" height="64" rx="8" fill="#f8cecc" stroke="#b85450" stroke-width="1.2"/>
+  <text x="916" y="294" font-size="12" font-weight="bold">Resume Processing Pod B</text>
+  <text x="916" y="316">10.244.0.22 · /readyz 503 · not ready ✗</text>
+
+  <!-- ── The registration ───────────────────────────────────────────────────────────── -->
+  <rect x="480" y="370" width="330" height="92" rx="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1.2"/>
+  <text x="496" y="394" font-size="12" font-weight="bold">EndpointSlice of resume-processing</text>
+  <text x="496" y="414" font-family="Menlo, Consolas, monospace" font-size="10.5">10.244.0.21  ready=true</text>
+  <text x="496" y="432" font-family="Menlo, Consolas, monospace" font-size="10.5">10.244.0.22  ready=false</text>
+  <text x="496" y="452" font-style="italic" fill="#555555">kept by the platform — no service registers itself</text>
+
+  <!-- ── How to read it ─────────────────────────────────────────────────────────────── -->
+  <rect x="200" y="300" width="250" height="150" rx="8" fill="#ffffff" stroke="#cccccc" stroke-width="1"/>
+  <text x="216" y="322" font-size="12" font-weight="bold">Reading the picture</text>
+  <path d="M216,342 H246" stroke="#82b366" stroke-width="1.5"/>
+  <text x="254" y="346">a REST call</text>
+  <path d="M216,364 H246" stroke="#9673a6" stroke-width="1.6"/>
+  <text x="254" y="368">RabbitMQ</text>
+  <path d="M216,386 H246" stroke="#6c8ebf" stroke-width="1.3" stroke-dasharray="5 3"/>
+  <text x="254" y="390">the platform's work</text>
+  <text x="216" y="414">①–④ one call, in order</text>
+  <text x="216" y="434" font-style="italic" fill="#555555">Addresses are illustrative</text>
+
+  <!-- ── The broker ─────────────────────────────────────────────────────────────────── -->
+  <rect x="480" y="500" width="330" height="72" rx="8" fill="#e1d5e7" stroke="#9673a6" stroke-width="1.2"/>
+  <text x="496" y="522" font-size="12" font-weight="bold">RabbitMQ · rabbitmq.hireassist.svc:5672</text>
+  <text x="496" y="542">queue screening.requested</text>
+  <text x="496" y="560" font-style="italic" fill="#555555">found by name, like every other Service</text>
+
+  <!-- ── The workers, as many as are running ────────────────────────────────────────── -->
+  <rect x="912" y="488" width="310" height="72" rx="8" fill="#ffffff" stroke="#9673a6" stroke-width="1"/>
+  <rect x="906" y="494" width="310" height="72" rx="8" fill="#ffffff" stroke="#9673a6" stroke-width="1"/>
+  <rect x="900" y="500" width="310" height="72" rx="8" fill="#ffffff" stroke="#9673a6" stroke-width="1.2"/>
+  <text x="916" y="522" font-size="12" font-weight="bold">Resume Processing Pods × N</text>
+  <text x="916" y="542">every replica consumes the same queue,</text>
+  <text x="916" y="560">so a new one needs no registration (NFR-07)</text>
+</svg>

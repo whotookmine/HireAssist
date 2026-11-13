@@ -34,8 +34,10 @@ Raised by the ADRs recorded on 2026-09-11, and load-bearing for them:
       synthetic Thai-shaped resumes to confirm.
 - [ ] **Do recruiters accept a batch that fills in progressively?** ADR-002's whole interaction
       model assumes yes, provided progress is visible. Untested.
-- [ ] **Can the team run a Kubernetes cluster early?** ADR-001's service discovery depends on it.
-      If not, discovery has to be reconsidered before anything else is built on top.
+- [ ] **Does the whole system run on a Kubernetes cluster?** ADR-001's service discovery depends
+      on it. ADR-014 wrote a manifest for every workload and a script to run them on a local kind
+      cluster, but they have not yet run end to end — the first attempt filled the laptop's disk.
+      Until they do, the discovery the documents describe is designed, not demonstrated.
 
 ---
 

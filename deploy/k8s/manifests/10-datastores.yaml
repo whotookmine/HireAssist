@@ -1,0 +1,259 @@
+# The datastores and the broker (ADR-003, ADR-011, ADR-013). Each is a one-replica StatefulSet
+# with its own volume, behind a ClusterIP Service of the same name — so PostgreSQL is
+# postgres.hireassist.svc:5432 to every service, wherever its Pod runs (ADR-014). A StatefulSet
+# keeps its Pod's name, and so its hostname, across restarts; RabbitMQ needs that to find its own
+# data again.
+#
+# Passwords come from the datastores Secret that up.sh creates. None of these Services is
+# published outside the cluster (ADR-010).
+
+# ── PostgreSQL for the Hiring Service ───────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: hireassist
+spec:
+  selector: { app: postgres }
+  ports:
+    - name: postgres
+      port: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: hireassist
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels: { app: postgres }
+  template:
+    metadata:
+      labels: { app: postgres, tier: datastore }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          env:
+            - { name: POSTGRES_USER, value: hireassist }
+            - { name: POSTGRES_DB, value: hiring }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: datastores, key: POSTGRES_PASSWORD } }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports:
+            - containerPort: 5432
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "hireassist", "-d", "hiring"] }
+            periodSeconds: 5
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 1Gi } }
+
+# ── PostgreSQL for the Identity Service, created from its schema and seed scripts ───────────
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-db
+  namespace: hireassist
+spec:
+  selector: { app: identity-db }
+  ports:
+    - name: postgres
+      port: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: identity-db
+  namespace: hireassist
+spec:
+  serviceName: identity-db
+  replicas: 1
+  selector:
+    matchLabels: { app: identity-db }
+  template:
+    metadata:
+      labels: { app: identity-db, tier: datastore }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - { name: POSTGRES_USER, value: identity }
+            - { name: POSTGRES_DB, value: identity }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: datastores, key: IDENTITY_DB_PASSWORD } }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports:
+            - containerPort: 5432
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "identity", "-d", "identity"] }
+            periodSeconds: 5
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+            # services/identity/db, as a ConfigMap that up.sh creates
+            - { name: init-scripts, mountPath: /docker-entrypoint-initdb.d, readOnly: true }
+      volumes:
+        - name: init-scripts
+          configMap: { name: identity-db-init }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 1Gi } }
+
+# ── MongoDB: one server, one database per service (ADR-003, ADR-011) ───────────────────────
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: hireassist
+spec:
+  selector: { app: mongo }
+  ports:
+    - name: mongo
+      port: 27017
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: hireassist
+spec:
+  serviceName: mongo
+  replicas: 1
+  selector:
+    matchLabels: { app: mongo }
+  template:
+    metadata:
+      labels: { app: mongo, tier: datastore }
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:7
+          ports:
+            - containerPort: 27017
+          readinessProbe:
+            exec: { command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping')"] }
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - { name: data, mountPath: /data/db }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 1Gi } }
+
+# ── RabbitMQ: the screening handover (ADR-013) ──────────────────────────────────────────────
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: hireassist
+spec:
+  selector: { app: rabbitmq }
+  ports:
+    - name: amqp
+      port: 5672
+    - name: management # reach it with: kubectl -n hireassist port-forward svc/rabbitmq 15672
+      port: 15672
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: hireassist
+spec:
+  serviceName: rabbitmq
+  replicas: 1
+  selector:
+    matchLabels: { app: rabbitmq }
+  template:
+    metadata:
+      labels: { app: rabbitmq, tier: datastore }
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:4.3-management-alpine
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom: { secretKeyRef: { name: datastores, key: RABBITMQ_USER } }
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom: { secretKeyRef: { name: datastores, key: RABBITMQ_PASSWORD } }
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+          readinessProbe:
+            exec: { command: ["rabbitmq-diagnostics", "-q", "ping"] }
+            periodSeconds: 10
+            timeoutSeconds: 10
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/rabbitmq }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 1Gi } }
+
+# ── MinIO: object storage for resume files ──────────────────────────────────────────────────
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: hireassist
+spec:
+  selector: { app: minio }
+  ports:
+    - name: s3
+      port: 9000
+    - name: console
+      port: 9001
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+  namespace: hireassist
+spec:
+  serviceName: minio
+  replicas: 1
+  selector:
+    matchLabels: { app: minio }
+  template:
+    metadata:
+      labels: { app: minio, tier: datastore }
+    spec:
+      containers:
+        - name: minio
+          # MinIO no longer publishes free images; Chainguard's build is maintained and free.
+          image: cgr.dev/chainguard/minio:latest
+          args: ["server", "/data", "--console-address", ":9001"]
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom: { secretKeyRef: { name: datastores, key: MINIO_ROOT_USER } }
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom: { secretKeyRef: { name: datastores, key: MINIO_ROOT_PASSWORD } }
+          ports:
+            - containerPort: 9000
+            - containerPort: 9001
+          readinessProbe:
+            httpGet: { path: /minio/health/ready, port: 9000 }
+            periodSeconds: 5
+          volumeMounts:
+            - { name: data, mountPath: /data }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 1Gi } }

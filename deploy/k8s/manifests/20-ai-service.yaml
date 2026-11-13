@@ -1,0 +1,55 @@
+# The AI Service (ADR-004, ADR-007): gRPC on 50051, reached as ai-service.hireassist.svc:50051.
+#
+# Readiness is the gRPC health check the service serves itself, which answers NOT_SERVING when
+# its provider has no credential — so a Pod that cannot do its job never receives a call.
+# Liveness only asks whether the port answers: a missing key is a configuration fault, and
+# restarting the Pod would not fix it.
+#
+# One replica. Both callers hold one long-lived HTTP/2 connection, and a ClusterIP Service
+# balances connections, not calls, so a second replica would not share the work (ADR-014).
+# The provider and its key come from the ai-service Secret that up.sh creates; unset, the
+# answers are canned.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service
+  namespace: hireassist
+  labels: { app: ai-service }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: ai-service }
+  template:
+    metadata:
+      labels: { app: ai-service, tier: service }
+    spec:
+      containers:
+        - name: ai-service
+          image: hireassist/ai-service:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 50051
+          envFrom:
+            - secretRef: { name: ai-service }
+          readinessProbe:
+            grpc: { port: 50051 }
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket: { port: 50051 }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-service
+  namespace: hireassist
+spec:
+  type: ClusterIP
+  selector: { app: ai-service }
+  ports:
+    - name: grpc
+      port: 50051

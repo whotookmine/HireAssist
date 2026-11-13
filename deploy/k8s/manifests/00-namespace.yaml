@@ -1,0 +1,6 @@
+# One namespace holds one company's whole deployment (ADR-006). Every Service in it is reachable
+# as <name>.hireassist.svc from any Pod in the cluster (ADR-014).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hireassist
