@@ -39,6 +39,74 @@ Outstanding: a run of the cluster end to end — Docker stopped responding when 
 the scripts have not yet run; a readiness check for Hiring.
 
 ---
+## 2026-11-13 20:05 — Hiring publishes pipeline events and serves its erasure
+
+- **Hiring publishes ADR-015's pipeline events from a transactional outbox.** Each event is
+  written in the same PostgreSQL transaction as the change it reports and relayed from there, so
+  none is lost or sent for a change that rolled back. Only a scored result counts as screened.
+- **Hiring serves `eraseHiringData()`** as `DELETE /candidates/{id}`, answering 204 as ADR-016
+  requires. Files are deleted before the rows that locate them, so a failure part-way leaves
+  nothing unfindable. UC-4 and UC-5 now work end to end through the API.
+- Known gap: a resume not yet screened has no candidate id, so an erasure in that window misses
+  it (Hiring README). Container diagram: both Hiring arrows are no longer planned.
+- Outstanding: web screens for UC-4, UC-5, UC-6; the batch-finished notice (FR-2.12).
+
+## 2026-11-13 19:35 — Gateway routes Compliance and reports role rejections
+
+- **`/compliance/*` is routed through the gateway.** The dashboard and held expiries are open to
+  either role (FR-4.1, FR-5.6); the policy, erasures, sweeps and access audit are Admin's.
+  Compliance's `/internal/*` is never routed, so only the gateway can write the access audit log.
+- **Only 403s go to the access audit log (FR-0.4).** A request with no valid token names no
+  member, so recording it would let anyone fill the log; it stays in the gateway's own log. The
+  call is fire-and-forget, so a Compliance outage loses the entry, not the response.
+- Container diagram: the gateway → Compliance arrow is no longer planned.
+- Outstanding: Hiring's pipeline events and erasure endpoint; web screens for UC-4, UC-5, UC-6.
+
+## 2026-11-13 18:50 — Compliance & Insights Service built; ADR-015, ADR-016, ADR-017
+
+- **ADR-015 (Accepted): pipeline events travel on RabbitMQ** (`pipeline.events`), not REST, so
+  Compliance is out of Hiring's write path and no event is lost. The contract is
+  `services/compliance/MESSAGES.md`.
+- **ADR-016 (Accepted): Compliance orchestrates erasure.** It asks Hiring and Resume Processing in
+  turn, and the erasure stays *pending* until both confirm (FR-5.8). Hiring's success is a `204`
+  only, so a missing route is never read as "erased".
+- **ADR-017 (Accepted): both sweeps run on a timer inside Compliance**, under a PostgreSQL advisory
+  lock. The System Scheduler is a component there, not a container, and is removed from the C4
+  container diagram.
+- These answer the erasure-cascade and scheduler candidates, which have left CONTEXT and the ADR
+  index. The SOC table's two "needs an ADR" notes are struck through, and OVERVIEW, ARCHITECTURE,
+  README and PROPOSAL's ADR table now match. The owner chose Go under ADR-005, for the same layout
+  as Hiring.
+- **A paused opening is excluded from staleness**, as UC-4's alternate flow 4a says. The sweep
+  clears its flag.
+- **There is no default retention policy:** until an Admin sets one, nothing expires. A candidate
+  linked to an opening Compliance has never heard of is held for a decision rather than erased.
+- **Outstanding:**
+  - Hiring must publish the events and serve `DELETE /candidates/{id}`.
+  - The gateway must route `/compliance/*` and report rejections.
+  - The web app has no UC-4, UC-5 or UC-6 screens.
+  - What "anonymise" keeps at a holder is still open (ADR-016).
+
+## 2026-11-13 00:40 — C4 Level 1 and Level 2 diagrams; ADR-014 self-hosted MinIO
+
+- **Added `docs/diagrams/c4-context.puml` and `c4-container.puml`** (C4-PlantUML, rendered to PNG)
+  for the final submission's System Context and Container views. Their sources are text, so they
+  can be reviewed and kept in step with the SOC table, unlike the draw.io v1.
+- **Drawing choices that state a position:** the Compliance & Insights Service, its database and
+  the System Scheduler are drawn dashed as *planned*, because they are designed but not built and no
+  technology has been chosen. MinIO is a container, not an external system, because the team runs
+  it. Each MongoDB database is its own container because a container shows ownership, not servers.
+  The gateway does not route to Resume Processing, following compose and v2.
+- **ADR-014 (Accepted): every deployment runs its own MinIO for resume files, in production too,
+  never Amazon S3.** ADR-003 had said only "S3-compatible; MinIO locally". Keeping the most
+  sensitive candidate data inside the deployment adds no cloud processor under PDPA, and local and
+  production run the same store. The cost is that durability, backups and encryption at rest are
+  now ours. The SOC table, ARCHITECTURE.md and the proposal docx builder no longer call object
+  storage external; the INDEX and PROPOSAL tables carry the new row.
+- **Outstanding:** two points in the documents disagree with these diagrams. OVERVIEW says the
+  gateway routes to Resume Processing, and OVERVIEW calls the Scheduler an internal trigger while v2 draws it as its own service. The diagrams are not
+  yet linked from ARCHITECTURE.md. ADR-014 asks for the MinIO image to be pinned rather than
+  `latest`, and for the v2 diagram to stop implying that object storage is external.
 
 ## 2026-10-17 23:30 — ADR-013: the broker carries the screening handover; design version 2
 

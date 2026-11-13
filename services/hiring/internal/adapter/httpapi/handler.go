@@ -41,12 +41,18 @@ type Screening interface {
 	ShortlistCandidate(ctx context.Context, openingID, resumeID string) (*domain.Ranked, error)
 }
 
+// Erasure is the use case port behind eraseHiringData() (UC-5, ADR-016).
+type Erasure interface {
+	EraseCandidate(ctx context.Context, candidateID string) error
+}
+
 // Services are the use cases the handler drives.
 type Services struct {
 	JobOpenings     JobOpenings
 	Proposals       Proposals
 	Screening       Screening
 	InterviewGuides InterviewGuides
+	Erasure         Erasure
 }
 
 const (
@@ -59,12 +65,14 @@ type handler struct {
 	proposals Proposals
 	screening Screening
 	guides    InterviewGuides
+	erasure   Erasure
 }
 
-// NewHandler routes the endpoints to the injected use cases. Every path sits under
-// /job-openings, the one prefix the Gateway routes to this service.
+// NewHandler routes the endpoints to the injected use cases. Every user path sits under
+// /job-openings, the one prefix the Gateway routes to this service. /candidates is for the
+// Compliance & Insights Service on the private network, and the Gateway does not route it.
 func NewHandler(s Services) http.Handler {
-	h := handler{svc: s.JobOpenings, proposals: s.Proposals, screening: s.Screening, guides: s.InterviewGuides}
+	h := handler{svc: s.JobOpenings, proposals: s.Proposals, screening: s.Screening, guides: s.InterviewGuides, erasure: s.Erasure}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /job-openings", h.create)
 	mux.HandleFunc("GET /job-openings", h.list)
@@ -88,12 +96,23 @@ func NewHandler(s Services) http.Handler {
 	mux.HandleFunc("POST "+guidePath+"/regenerate", h.regenerateGuide)                     // reviseGuide(), asking again
 	mux.HandleFunc("PUT "+guidePath+"/questions", h.reviseGuideQuestions)                  // reviseGuide(), the Recruiter's own
 	mux.HandleFunc("PUT "+guidePath+"/questions/{questionId}/note", h.recordInterviewNote) // recordInterviewNote()
+	mux.HandleFunc("DELETE /candidates/{candidateId}", h.eraseCandidate)                   // eraseHiringData()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("GET /openapi.yaml", serveSpec)
 	mux.HandleFunc("GET /docs", serveSwaggerUI)
 	return mux
+}
+
+// eraseCandidate answers 204 once the Hiring Service holds nothing about the candidate,
+// including when it held nothing to begin with. ADR-016: only a 204 counts as erased.
+func (h handler) eraseCandidate(w http.ResponseWriter, r *http.Request) {
+	if err := h.erasure.EraseCandidate(r.Context(), r.PathValue("candidateId")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ---- wire format ----

@@ -40,7 +40,7 @@ func NewJobOpeningRepository(pool *pgxpool.Pool) *JobOpeningRepository {
 
 // Save inserts a new job opening or replaces an existing one with the same id, criteria
 // included, in one transaction.
-func (r *JobOpeningRepository) Save(ctx context.Context, o *domain.JobOpening) error {
+func (r *JobOpeningRepository) Save(ctx context.Context, o *domain.JobOpening, events ...domain.PipelineEvent) error {
 	return pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
 		var outcome *string
 		if o.Outcome != "" {
@@ -74,7 +74,7 @@ func (r *JobOpeningRepository) Save(ctx context.Context, o *domain.JobOpening) e
 		); err != nil {
 			return fmt.Errorf("saving criteria of %s: %w", o.ID, err)
 		}
-		return nil
+		return insertEvents(ctx, tx, events)
 	})
 }
 

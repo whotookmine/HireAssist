@@ -128,19 +128,20 @@ func newTestServer(opts serverOptions) testServer {
 	if opts.generator == nil {
 		opts.generator = stubGenerator{}
 	}
-	openings := memory.NewJobOpeningRepository()
+	openings, batches, guideRepo := memory.NewJobOpeningRepository(), memory.NewScreeningRepository(), memory.NewInterviewGuideRepository()
 	screening := usecase.NewScreeningService(usecase.ScreeningDeps{
-		Openings: openings, Batches: memory.NewScreeningRepository(), Files: opts.files,
+		Openings: openings, Batches: batches, Files: opts.files,
 		Requester: acceptingBroker{}, Justifications: stubJustifications{}, Clock: fixedClock{}, IDs: &sequentialScreeningIDs{},
 	})
 	guides := usecase.NewInterviewGuideService(
-		memory.NewInterviewGuideRepository(), openings, opts.profiles, opts.generator, fixedClock{}, guideID{})
+		guideRepo, openings, opts.profiles, opts.generator, fixedClock{}, guideID{})
 	return testServer{
 		Handler: httpapi.NewHandler(httpapi.Services{
 			JobOpenings:     usecase.NewJobOpeningService(openings, fixedClock{}, fixedID{}),
 			Proposals:       usecase.NewProposalService(opts.deriver),
 			Screening:       screening,
 			InterviewGuides: guides,
+			Erasure:         &usecase.CandidateErasure{Batches: batches, Files: opts.files, Guides: guideRepo},
 		}),
 		screening: screening,
 	}

@@ -42,6 +42,7 @@ Term project for **Software Architecture**, Chulalongkorn University.
 | [services/hiring/](services/hiring/) | **Code.** The Hiring Service — Go, PostgreSQL and MongoDB, REST with an OpenAPI contract, RabbitMQ and MinIO. Job openings with AI-proposed criteria (UC-1), batch screening through the message broker (UC-2) and interview guides (UC-3). |
 | [services/gateway/](services/gateway/) | **Code.** The API Gateway — Go. Routing, local token verification (ADR-009), the role gate and rate limiting. |
 | [proto/](proto/) | Shared gRPC contracts. Callers generate clients from these. |
+| [services/compliance/](services/compliance/) | **Code.** The Compliance & Insights Service — Go, PostgreSQL, a RabbitMQ consumer. Retention policy, sweeps and orchestrated erasure (UC-5), the pipeline dashboard and stale-position flags (UC-4), the access audit log. Reached through the gateway; fed by Hiring's pipeline events, and erases through Hiring and Resume Processing. |
 | [services/web/](services/web/) | **Code.** The HireAssist Web UI — React, TypeScript, Mantine. Sign-in and UC-1 to UC-3, against the gateway or on a mock backend in the browser. |
 | [docs/OVERVIEW.md](docs/OVERVIEW.md) | Runtime view — what each service owns, who calls whom, and the call sequence behind each use case. |
 | `docs/build-proposal-docx.py`, `docs/adr/build-docx.py` | Build the two Word deliverables. The documents themselves are generated, not committed. |
@@ -90,6 +91,13 @@ variables that move a host port that is already taken. `deploy/k8s/up.sh` builds
 into a local Kubernetes cluster on kind, where the services find each other through Kubernetes
 Services (ADR-014), with the web app on http://localhost:30080; `deploy/k8s/README.md` explains
 it.
+**Documentation, plus six services in progress:** the AI Service, the Identity Service, the
+Hiring Service, the Resume Processing Service, the Compliance & Insights Service and the API
+Gateway, each with its own README, and the web app. `docker compose up -d --build` at the root runs the whole system: the web app on
+http://localhost:4173, the gateway, the Identity, Hiring, Resume Processing, Compliance and AI
+services (the AI Service with canned answers, so no API key is needed), PostgreSQL, MongoDB,
+RabbitMQ, MinIO, and Mailpit, which catches the notification emails at http://localhost:8025. The comments at the top of `docker-compose.yml` list the demo sign-ins and the
+variables that move a host port that is already taken.
 
 The repository is a monorepo. Services live at `services/<name>/` and shared gRPC contracts at
 `proto/`. That layout was settled by starting implementation and still needs an ADR. Each
@@ -110,7 +118,10 @@ hire-assist/
 │   ├── ai-service/          # AI Service (Python, gRPC)
 │   ├── identity/            # Identity Service (Go) — members
 │   ├── hiring/              # Hiring Service (Go) — job openings
-│   └── gateway/             # API Gateway (Go) — routing, tokens, roles
+│   ├── resume-processing/   # Resume Processing Service (Node.js) — profiles and scoring
+│   ├── compliance/          # Compliance & Insights Service (Go) — retention, erasure, dashboard
+│   ├── gateway/             # API Gateway (Go) — routing, tokens, roles
+│   └── web/                 # HireAssist Web UI (React)
 └── docs/
     ├── PROPOSAL.md          # submission document
     ├── CONTEXT.md           # working notes

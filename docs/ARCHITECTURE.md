@@ -37,15 +37,16 @@ what it shows.*
   screening handover between Hiring and Resume Processing, which runs over the RabbitMQ message
   broker** (ADR-013): Hiring publishes `screening.requested`, Resume Processing publishes
   `screening.completed`, and a REST call remains only for reading a candidate's profile.
-- **An adapter box beside a service stands for an external system**, and for the fact that the
-  service reaches it only through that adapter — object storage, the model provider, the email
-  provider. The providers themselves are not drawn; the point the picture makes is that no
+- **An adapter box beside a service stands for a dependency outside the service**, and for the
+  fact that the service reaches it only through that adapter — object storage, the model
+  provider, the email provider. Object storage is the deployment's own MinIO server, not an
+  external system (ADR-014); the other two are external. None of the three is drawn; the point the picture makes is that no
   domain logic touches a provider's API directly. The Service–Operations–Collaborators table
   names them.
 - **The Scheduler is a trigger, not a service.** It is drawn because it is the only caller that
   does not arrive through the gateway, and because the erasure arrows out of Compliance &
-  Insights would otherwise appear to fire from nowhere. How the timer is actually run is an open
-  decision.
+  Insights would otherwise appear to fire from nowhere. It is a timer inside Compliance &
+  Insights, guarded by a database lock (ADR-017), not a process of its own.
 - **One deployment serves one customer company** (ADR-006), so everything in the picture is one
   company's instance and there is no tenant identity anywhere inside it.
 
@@ -55,7 +56,7 @@ what it shows.*
 |---|---|---|
 | **Recruiter** | UC-1, UC-2, UC-3, UC-4 | the HireAssist Web UI → API Gateway |
 | **Admin** | everything a Recruiter can, plus UC-5 (retention policy) and UC-6 (members and roles) | the same UI — Admin specialises Recruiter |
-| **System Scheduler** | UC-4 staleness checks and UC-5 retention evaluation, on a timer | calls Compliance & Insights directly; no UI |
+| **System Scheduler** | UC-4 staleness checks and UC-5 retention evaluation, on a timer | a timer inside Compliance & Insights (ADR-017); no UI |
 | *Candidate* | nothing — an indirect actor with no interface | their resume arrives as a file the Recruiter uploads; not drawn |
 
 Signing in (UC-0) is not a business use case. A Guest signs in through the gateway and receives a
@@ -71,7 +72,7 @@ connected only to the gateway — no other service calls it.
 | **Identity Service** | Who may sign in and with which role | UC-0, UC-6 | PostgreSQL — members, their roles, sessions |
 | **Hiring Service** | The hiring record: openings and criteria, screening batches and their results, shortlist decisions, interview guides | UC-1, UC-2, UC-3 | PostgreSQL — job openings, criteria, batches and per-entry status, scores and overrides, shortlist decisions; MongoDB — interview guides |
 | **Resume Processing Service** | Turning one resume file into a scored candidate profile | UC-2 (per-resume work) | MongoDB — candidate identity and collection date, candidate profiles, parsed text, per-criterion scoring output and justifications (ADR-003 puts identity and the date in PostgreSQL; not yet done) |
-| **Message broker (RabbitMQ)** | Carrying each resume to screening and its result back, with retry and dead-letter queues | UC-2 | the two screening queues and their retry and dead-letter queues — no domain data beyond ids, a file location and the criteria snapshot |
+| **Message broker (RabbitMQ)** | Carrying each resume to screening and its result back, with retry and dead-letter queues; and Hiring's pipeline events to Compliance & Insights (ADR-015) | UC-2, UC-4 | the two screening queues and their retry and dead-letter queues, and `pipeline.events` — no domain data beyond ids, a file location, the criteria snapshot and an opening's title |
 | **AI Service** | Every call to the language model, behind domain operations | UC-1, UC-2, UC-3 | nothing — prompts and the model credential only |
 | **Compliance & Insights Service** | Retention enforcement and the pipeline dashboard | UC-4, UC-5 | PostgreSQL — retention policy, pipeline metrics, erasure and access audit logs |
 
@@ -151,6 +152,5 @@ expected of us — at least one service reached by REST, one by RPC and one driv
 ADR-013 completes the three. It puts RabbitMQ where it replaces the most hand-written code: the
 per-resume handover between Hiring and Resume Processing, whose work table, retried callback and
 retry schedule ADR-002 had built by hand. ADR-002's per-resume unit of work and failure rules
-stand; only the crossing changed. The pipeline events Hiring pushes synchronously into
-Compliance's write path were the other candidate, and remain the next place the broker would
-earn its keep.
+stand; only the crossing changed. ADR-015 then put the pipeline events Hiring reports to
+Compliance & Insights on the broker too, taking Compliance out of Hiring's write path.

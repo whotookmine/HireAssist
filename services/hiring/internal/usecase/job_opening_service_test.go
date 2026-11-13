@@ -17,14 +17,16 @@ type fakeRepo struct {
 	saved   map[string]domain.JobOpening
 	order   []string
 	saveErr error
+	events  []domain.PipelineEvent
 }
 
 func newFakeRepo() *fakeRepo { return &fakeRepo{saved: map[string]domain.JobOpening{}} }
 
-func (r *fakeRepo) Save(_ context.Context, o *domain.JobOpening) error {
+func (r *fakeRepo) Save(_ context.Context, o *domain.JobOpening, events ...domain.PipelineEvent) error {
 	if r.saveErr != nil {
 		return r.saveErr
 	}
+	r.events = append(r.events, events...)
 	if _, exists := r.saved[o.ID]; !exists {
 		r.order = append(r.order, o.ID)
 	}

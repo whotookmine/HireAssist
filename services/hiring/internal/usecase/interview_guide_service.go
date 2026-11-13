@@ -28,6 +28,8 @@ type InterviewGuideRepository interface {
 	// FindByCandidate returns the guide for one candidate against one opening, or
 	// ErrGuideNotFound. A candidate has at most one guide per opening; regenerating revises it.
 	FindByCandidate(ctx context.Context, jobOpeningID, candidateID string) (*domain.InterviewGuide, error)
+	// DeleteByCandidate removes the candidate's guides for every opening; none is success.
+	DeleteByCandidate(ctx context.Context, candidateID string) error
 }
 
 // CandidateProfiles reads a candidate's profile from the Resume Processing Service, which owns

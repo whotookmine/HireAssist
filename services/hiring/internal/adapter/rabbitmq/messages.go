@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/frngrit/HireAssist/services/hiring/internal/domain"
 )
@@ -113,4 +114,26 @@ func (m Completed) ToDomain() (domain.EntryStatus, domain.ScreeningResult, error
 		r.UnmetMustHaves = append(r.UnmetMustHaves, pos)
 	}
 	return domain.EntryScreened, r, nil
+}
+
+// PipelineEvent is the body of one message on pipeline.events (services/compliance/MESSAGES.md).
+type PipelineEvent struct {
+	EventID                string    `json:"event_id"`
+	Type                   string    `json:"type"`
+	OccurredAt             time.Time `json:"occurred_at"`
+	JobOpeningID           string    `json:"job_opening_id"`
+	Title                  string    `json:"title,omitempty"`
+	ExpectedTimeToFillDays int       `json:"expected_time_to_fill_days,omitempty"`
+	ResumeID               string    `json:"resume_id,omitempty"`
+	CandidateID            string    `json:"candidate_id,omitempty"`
+	CorrelationID          string    `json:"correlation_id"`
+}
+
+// NewPipelineEvent builds the message for one event.
+func NewPipelineEvent(e domain.PipelineEvent, correlationID string) PipelineEvent {
+	return PipelineEvent{
+		EventID: e.ID, Type: string(e.Type), OccurredAt: e.OccurredAt, JobOpeningID: e.JobOpeningID,
+		Title: e.Title, ExpectedTimeToFillDays: e.ExpectedTimeToFillDays,
+		ResumeID: e.ResumeID, CandidateID: e.CandidateID, CorrelationID: correlationID,
+	}
 }

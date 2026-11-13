@@ -16,7 +16,7 @@ The recruiter-facing hiring record, in three slices:
 | PostgreSQL | job openings, criteria, batches and their criteria snapshots, scores, overrides, shortlists (ADR-003) | `pgx` |
 | MongoDB | interview guides, an AI-derived document (ADR-003), in a database of this service's own (ADR-011) | the MongoDB driver |
 | Object storage (MinIO) | the resume files | `minio-go`, S3 API |
-| RabbitMQ | the screening handover to and from Resume Processing | `amqp091-go` |
+| RabbitMQ | the screening handover to and from Resume Processing; pipeline events to Compliance & Insights (ADR-015) | `amqp091-go` |
 | AI Service | proposals (UC-1) and interview questions (UC-3) | gRPC, client generated from `/proto` (ADR-007) |
 | Resume Processing Service | the justification of a score (UC-2) and the profile a guide is built from (UC-3) | REST, `getCandidateProfile()` |
 
@@ -119,8 +119,9 @@ adapter from the environment, and nothing else knows which one it got.
 ## HTTP API
 
 The contract is [`api/openapi.yaml`](api/openapi.yaml). With the service running, browse and try
-it in Swagger UI at **`/docs`**; the raw spec is served at `/openapi.yaml`. Every path is under
-`/job-openings`, the one prefix the gateway routes here.
+it in Swagger UI at **`/docs`**; the raw spec is served at `/openapi.yaml`. Every user path is
+under `/job-openings`, the one prefix the gateway routes here; `DELETE /candidates/{id}` is for
+Compliance only.
 
 **Change the spec first.** `TestHandlerMatchesOpenAPIContract` sends a request to every
 operation through the real handler and validates each request and response against the spec. An
@@ -147,6 +148,7 @@ not serve all fail it.
 | `reviseGuide()`, asking again | `POST …/interview-guide/regenerate` `{"emphasis": "more system design"}` | 200 |
 | `reviseGuide()`, the Recruiter's own | `PUT …/interview-guide/questions` (the whole set) | 200 |
 | `recordInterviewNote()` | `PUT …/interview-guide/questions/{questionId}/note` `{"note": "…"}` | 200 |
+| `eraseHiringData()` | `DELETE /candidates/{candidateId}` — Compliance only | 204 |
 | health | `GET /healthz` | 200 |
 
 ```json
@@ -228,12 +230,32 @@ docker run --rm -v "$PWD/../..":/src -w /src golang:1.25-alpine sh -c '
     proto/hireassist/ai/v1/ai_service.proto'
 ```
 
+## Pipeline events and erasure (UC-4, UC-5)
+
+**Pipeline events** (ADR-015) go to the Compliance & Insights Service on `pipeline.events`, in
+the format of [`services/compliance/MESSAGES.md`](../compliance/MESSAGES.md). Creating, pausing,
+resuming and closing an opening, accepting a resume, recording a scored result and shortlisting
+each write their event into `pipeline_outbox` **in the same transaction** as the change. The
+relay that sends held-back screening requests publishes them every 5 seconds, oldest first, and
+marks each sent once the broker confirms it. A broker outage delays the dashboard; it loses
+nothing. Without `DATABASE_URL` the events are kept in memory and never published.
+
+**`DELETE /candidates/{candidateId}`** is `eraseHiringData()` (ADR-016). It is for the
+Compliance & Insights Service on the private network; the gateway does not route it. It deletes
+the candidate's resume files, then their interview guides, then their screening entries (scores,
+overrides, shortlists), and removes the candidate id from the outbox. It answers **204** once
+nothing is held, including when nothing was, so asking again is safe. Any failure answers an
+error and the erasure stays pending in Compliance, to be asked again.
+
+**Known gap:** a resume still waiting to be screened carries no candidate id yet, so an erasure
+arriving in that window does not find it. Screening takes seconds, so the window is narrow, but
+it is not closed.
+
 ## Not built yet
 
 - **UC-3's precondition.** The use case says a guide is for a *shortlisted* candidate.
   Shortlisting is built now; generating a guide does not check it yet.
-- **The batch-finished notification** (FR-2.12) and **`recordPipelineEvent()`** — neither is in
-  this round's scope.
+- **The batch-finished notification** (FR-2.12) — not in this round's scope.
 - **Role enforcement** (FR-0.4) — the gateway checks the caller; this service trusts it.
 - **A readiness endpoint** that checks the databases (ADR-005 rule 4 asks for one; only
   `/healthz` exists).

@@ -1,0 +1,39 @@
+@startuml c4-context
+' HireAssist — C4 Level 1: System Context
+'
+' This file is the source of the diagram. c4-context.png next to it is rendered from it.
+' After editing, re-render and commit both files together:
+'
+'   plantuml -tpng docs/diagrams/c4-context.puml
+'
+' Level 1 shows HireAssist as one box: who uses it and which systems it depends on that someone
+' else runs. Services, databases and protocols belong on Level 2 (c4-container.puml). Object
+' storage, the broker and the scheduler are run by the team, so they are containers there, not
+' external systems here.
+
+!include <C4/C4_Context>
+
+title HireAssist — System Context (C4 Level 1)
+
+AddElementTag("indirect", $borderStyle=DashedLine(), $legendText="indirect actor (no interface)")
+AddRelTag("indirect", $lineStyle=DashedLine(), $legendText="outside the system")
+
+Person(recruiter, "Recruiter", "Signed-in member who runs day-to-day hiring: an HR generalist, a founder, or a tech lead hiring for their own team")
+Person(admin, "Admin", "Signed-in owner of the installation. Has every Recruiter capability, plus retention policy and member management")
+Person_Ext(candidate, "Candidate", "Supplies a resume and is the subject of the data. Never signs in", $tags="indirect")
+
+System(hireassist, "HireAssist", "Screens resumes against a job's criteria with an explained AI score for each, prepares interview questions, and enforces PDPA retention on candidate data")
+
+System_Ext(llm, "LLM Provider", "Anthropic API, with OpenAI as a configurable substitute")
+System_Ext(email, "Email Provider", "Delivers notification email")
+
+Rel(recruiter, hireassist, "Creates job openings, screens resumes, prepares interviews, monitors the pipeline", "HTTPS")
+Rel(admin, hireassist, "Sets the retention policy, manages members and roles, executes erasure requests", "HTTPS")
+Rel(candidate, recruiter, "Sends a resume; asks for erasure", "email, out of band", $tags="indirect")
+
+Rel(hireassist, llm, "Derives criteria, extracts and scores profiles, drafts interview questions", "HTTPS")
+Rel(hireassist, email, "Sends batch-finished, stale-position and retention notices", "SMTP / API")
+Rel(email, recruiter, "Delivers notices to")
+
+SHOW_LEGEND()
+@enduml

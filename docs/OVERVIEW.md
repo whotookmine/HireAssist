@@ -30,10 +30,11 @@ and Resume Processing, which travels as RabbitMQ messages**
   any request exceeding the caller's role. For the web application, keeps the refresh token in an
   HttpOnly cookie and clears it on sign-out ([ADR-012](adr/ADR-012-refresh-token-cookie-at-the-gateway.md)).
 - **Called by** — the recruiter-facing web application. The only public entry point for user
-  traffic; the System Scheduler is an internal trigger and does not pass through it.
+  traffic; the System Scheduler is a timer inside Compliance & Insights
+  ([ADR-017](adr/ADR-017-in-process-scheduler.md)) and does not pass through it.
 - **Calls** — no one to check a token: verification is local
   ([ADR-009](adr/ADR-009-jwt-with-refresh-tokens.md)), and the token is forwarded unchanged.
-  `Compliance.recordAuthorisationRejected()` on every rejection; routes onward to Identity,
+  `Compliance.recordAuthorisationRejected()` on every rejection for want of a role (a request with no valid token names no one, and is only logged); routes onward to Identity,
   Hiring, Compliance and Resume Processing. Never the AI Service.
 - **It is the only place a token is checked**
   ([ADR-010](adr/ADR-010-verification-at-the-gateway-only.md)). The services behind it do not
@@ -61,8 +62,12 @@ and Resume Processing, which travels as RabbitMQ messages**
   `screening.completed` from the broker as `reportScreeningResult()`.
 - **Calls** — Resume Processing (`getCandidateProfile()`); the AI Service
   (`deriveCriteriaFromDescription()`, `generateInterviewQuestions()`);
-  `Compliance.recordPipelineEvent()`; the Object Storage and Email adapters. **Publishes**
-  `screening.requested`, one per resume, holding each in PostgreSQL until the broker confirms it.
+  the Object Storage and Email adapters. **Publishes** `screening.requested`, one per resume,
+  holding each in PostgreSQL until the broker confirms it, and the pipeline events Compliance
+  builds its dashboard from, on `pipeline.events`
+  ([ADR-015](adr/ADR-015-pipeline-events-on-the-broker.md)). Each event is written in the same
+  transaction as the change it reports and relayed from there, so none is lost or sent for a
+  change that was rolled back.
 
 ### Resume Processing Service
 
@@ -99,8 +104,12 @@ and Resume Processing, which travels as RabbitMQ messages**
 - **Does** — the clock-driven, destructive half of the system: retention sweeps, erasure
   orchestrated across the services that hold the data and proved afterwards, staleness flagging,
   and the dashboard maintained as a projection rather than computed as a query.
-- **Called by** — the Gateway; Hiring, pushing `recordPipelineEvent()`; the Gateway again, pushing
-  `recordAuthorisationRejected()`; the System Scheduler.
+- **Called by** — the Gateway; the Gateway again, pushing `recordAuthorisationRejected()`; its own
+  timer, which runs the staleness and retention sweeps hourly under a database lock
+  ([ADR-017](adr/ADR-017-in-process-scheduler.md)). **Consumes** Hiring's pipeline events from
+  `pipeline.events` as `recordPipelineEvent()` ([ADR-015](adr/ADR-015-pipeline-events-on-the-broker.md)).
+- **Erasure is orchestrated** ([ADR-016](adr/ADR-016-orchestrated-erasure.md)): it asks each holder
+  in turn, and an erasure stays *pending*, retried by every sweep, until all have confirmed.
 - **Calls** — `Hiring.eraseHiringData()`; Resume Processing (`eraseCandidateProfile()`,
   `listCandidateProfiles()`); the Email adapter.
 
@@ -134,7 +143,7 @@ Browser → Gateway → Hiring.proposeJobOpening()
 
 Browser → Gateway → Hiring.createJobOpening()      (confirmed title, criteria, time-to-fill)
                     Hiring  writes the opening and its criteria to PostgreSQL
-                    Hiring  → Compliance.recordPipelineEvent()
+                    Hiring  publishes opening.opened → pipeline.events → Compliance.recordPipelineEvent()
 ```
 
 Two operations, because the review sits between them: FR-1.3 requires the proposal to be shown
@@ -214,7 +223,7 @@ Browser → Gateway → Hiring.generateInterviewGuide()
 ```
 Recruiter:   Browser   → Gateway → Compliance.getPipelineDashboard()
                                    served from Compliance's own counters
-Scheduler:   Scheduler → Compliance.evaluateStaleness()
+Scheduler:   timer in Compliance → evaluateStaleness()
                          flags openings past their expected time-to-fill
                          → Email adapter → the responsible Recruiter
 ```
@@ -225,13 +234,14 @@ Paused openings are excluded from evaluation, so the alerts stay meaningful.
 
 ```
 Admin:       Browser   → Gateway → Compliance.setRetentionPolicy()
-Scheduler:   Scheduler → Compliance.evaluateRetention()
+Scheduler:   timer in Compliance → evaluateRetention()
                          warning window  → Email adapter
                          on expiry, orchestrates erasure:
                             → Hiring.eraseHiringData()
+                              (Hiring deletes the resume file in MinIO too)
                             → ResumeProcessing.eraseCandidateProfile()
-                            → the resume file in object storage
-                         writes the erasure audit entry (pseudonymous identifier only)
+                         pending until both confirm (ADR-016); then the audit entry
+                         keeps only a random reference
 ```
 
 A candidate in an active hiring process has expiry held for a Recruiter to resolve. An erasure
@@ -248,13 +258,9 @@ Admin → Gateway → Identity.listMembers() · getMember() · createMember() ·
 
 ## Open questions this view exposes
 
-Both are recorded elsewhere; they are repeated here because the runtime view is where they show.
+It is recorded elsewhere and repeated here because the runtime view is where it shows. A second,
+whether pipeline events should travel on the broker, was answered by ADR-015.
 
 - **Who routes Resume Processing's recruiter-facing reads.** `listUnparsableResumes()` and
   `getCandidateProfile()` are things a Recruiter looks at, but nothing states whether the Gateway
   routes to Resume Processing directly or Hiring proxies. See [CONTEXT.md](CONTEXT.md).
-- **`recordPipelineEvent()` is a synchronous dependency** in Hiring's write path, and a dropped
-  call leaves a permanently wrong dashboard number with nothing to reconcile against. Now that a
-  broker carries the screening handover (ADR-013), publishing these events on it is the obvious
-  fix. See
-  [SERVICE-OPERATIONS-COLLABORATORS.md](SERVICE-OPERATIONS-COLLABORATORS.md).

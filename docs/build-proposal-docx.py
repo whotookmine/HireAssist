@@ -784,8 +784,9 @@ para(doc,
      "access audit log. It is the only place a token is checked: the services behind it trust "
      "the deployment\u2019s private network (ADR-010). For the web application it keeps the refresh token in an HttpOnly "
      "cookie (ADR-012). It owns no data. "
-     "External systems \u2014 object storage, the model provider, the email provider \u2014 are each "
-     "reached only through an adapter. No service reads another service\u2019s data store; every "
+     "Object storage (the deployment\u2019s own MinIO server, ADR-014), the model provider and the "
+     "email provider are each reached only through an adapter; the last two are external. "
+     "No service reads another service\u2019s data store; every "
      "crossing is one of the operations above or a message on one of the two screening queues.",
      size=9.5, after=0)
 

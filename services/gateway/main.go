@@ -20,6 +20,8 @@ type config struct {
 	port        string
 	identityURL string
 	hiringURL   string
+	// complianceURL serves /compliance/* and receives every role rejection (FR-0.4).
+	complianceURL string
 	// publicKeys is the ES256 verification material, PEM-encoded, as described in auth.go.
 	// The gateway verifies every access token itself and never calls the Identity Service to
 	// check one (ADR-009).
@@ -33,13 +35,14 @@ type config struct {
 
 func loadConfig() config {
 	return config{
-		port:         envOr("PORT", "8000"),
-		identityURL:  envOr("IDENTITY_URL", "http://localhost:8081"),
-		hiringURL:    envOr("HIRING_URL", "http://localhost:8080"),
-		publicKeys:   os.Getenv("JWT_PUBLIC_KEYS"),
-		rateLimit:    envFloat("RATE_LIMIT_PER_SECOND", 20),
-		rateBurst:    envInt("RATE_LIMIT_BURST", 40),
-		cookieSecure: os.Getenv("SESSION_COOKIE_SECURE") != "false",
+		port:          envOr("PORT", "8000"),
+		identityURL:   envOr("IDENTITY_URL", "http://localhost:8081"),
+		hiringURL:     envOr("HIRING_URL", "http://localhost:8080"),
+		complianceURL: envOr("COMPLIANCE_URL", "http://localhost:8083"),
+		publicKeys:    os.Getenv("JWT_PUBLIC_KEYS"),
+		rateLimit:     envFloat("RATE_LIMIT_PER_SECOND", 20),
+		rateBurst:     envInt("RATE_LIMIT_BURST", 40),
+		cookieSecure:  os.Getenv("SESSION_COOKIE_SECURE") != "false",
 	}
 }
 
@@ -65,6 +68,10 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("bad HIRING_URL: %w", err)
 	}
+	compliance, err := url.Parse(cfg.complianceURL)
+	if err != nil {
+		return fmt.Errorf("bad COMPLIANCE_URL: %w", err)
+	}
 
 	// An empty key set is allowed so the gateway can be run before the Identity Service can
 	// sign anything. It then rejects every protected route rather than letting one through,
@@ -78,10 +85,11 @@ func run() error {
 	}
 
 	gw := &gateway{
-		routes:   routeTable(identity, hiring),
+		routes:   routeTable(identity, hiring, compliance),
 		verifier: &verifier{keys: keys},
 		limiter:  newRateLimiter(cfg.rateLimit, cfg.rateBurst),
 		cookies:  sessionCookies{secure: cfg.cookieSecure},
+		audit:    compliance,
 	}
 
 	server := &http.Server{
@@ -101,7 +109,7 @@ func run() error {
 	serverErr := make(chan error, 1)
 	go func() {
 		slog.Info("gateway listening",
-			"port", cfg.port, "identity", cfg.identityURL, "hiring", cfg.hiringURL,
+			"port", cfg.port, "identity", cfg.identityURL, "hiring", cfg.hiringURL, "compliance", cfg.complianceURL,
 			"verification_keys", len(keys))
 		serverErr <- server.ListenAndServe()
 	}()

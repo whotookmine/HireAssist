@@ -42,6 +42,8 @@ func (b *fakeBroker) RequestScreening(_ context.Context, _ *domain.ScreeningBatc
 
 type brokenStore struct{}
 
+func (brokenStore) DeleteResume(context.Context, string) error { return errors.New("storage down") }
+
 func (brokenStore) StoreResume(context.Context, string, []byte) error {
 	return errors.New("dial tcp 10.0.0.9:9000: connection refused")
 }

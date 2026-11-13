@@ -27,20 +27,26 @@ The course requires **at least 3 ADRs** as part of the project proposal submissi
 | [ADR-012](ADR-012-refresh-token-cookie-at-the-gateway.md) | The gateway keeps the web application's refresh token in an HttpOnly cookie | Accepted | 2026-10-17 |
 | [ADR-013](ADR-013-rabbitmq-for-the-screening-handover.md) | RabbitMQ carries the screening handover between Hiring and Resume Processing | Accepted | 2026-10-17 |
 | [ADR-014](ADR-014-service-discovery-through-kubernetes-services.md) | Service discovery through Kubernetes Services, resolved by the cluster DNS | Accepted | 2026-10-31 |
+| [ADR-014](ADR-014-self-hosted-minio-for-resume-files.md) | Resume files live in a MinIO server that each deployment runs itself | Accepted | 2026-11-13 |
+| [ADR-015](ADR-015-pipeline-events-on-the-broker.md) | Pipeline events reach Compliance & Insights through RabbitMQ | Accepted | 2026-11-13 |
+| [ADR-016](ADR-016-orchestrated-erasure.md) | Compliance & Insights orchestrates every erasure and keeps it pending until each holder confirms | Accepted | 2026-11-13 |
+| [ADR-017](ADR-017-in-process-scheduler.md) | The retention and staleness sweeps run on a timer inside Compliance & Insights | Accepted | 2026-11-13 |
 
 The first four are best read in order: ADR-001 draws the boundaries, ADR-002 fills in the busiest one,
 ADR-003 says what each side stores, and ADR-004 fills in the dependency the others are built to
 survive. ADR-002 and ADR-004 are a deliberate pair — running without a fallback model is only
 acceptable because no accepted work is lost (NFR-10).
 
-Seven candidates have since been answered and removed from the list below, which now holds
-nine — two of them raised by ADR-008. Six were answered by records: the model-provider question by
-ADR-004; work-queue topology, worker scaling and delivery guarantee by ADR-002; the scorer boundary
-by ADR-001 and ADR-004, with per-criterion evidence persistence by ADR-003; service discovery by
-ADR-001; the datastore split by ADR-003; and the session and token mechanism by ADR-009, with
-ADR-010 settling who checks a token. The seventh, the front-end framework, was settled on
-2026-10-16 by its owner under ADR-005 when the web application was built: React and TypeScript, a
-single-page app that talks only to the gateway.
+Nine candidates have since been answered and removed from the list below, which now holds
+seven — two of them raised by ADR-008. Eight were answered by records: the model-provider question
+by ADR-004; work-queue topology, worker scaling and delivery guarantee by ADR-002; the scorer
+boundary by ADR-001 and ADR-004, with per-criterion evidence persistence by ADR-003; service
+discovery by ADR-001; the datastore split by ADR-003; the session and token mechanism by ADR-009,
+with ADR-010 settling who checks a token; the erasure cascade by ADR-016; and the scheduler shared
+by UC-4 and UC-5 by ADR-017. The ninth, the front-end framework, was settled on 2026-10-16 by its
+owner under ADR-005 when the web application was built: React and TypeScript, a single-page app
+that talks only to the gateway. The Compliance & Insights Service's language was chosen the same
+way on 2026-11-13: Go, for the same layout as the Hiring Service.
 
 ---
 
@@ -53,8 +59,9 @@ place that tracks which parts of an earlier record no longer hold.
 | Record | Still in force | Changed by a later record |
 |---|---|---|
 | **ADR-001** | The five services, the capability boundaries, the gateway, Kubernetes discovery, and REST on every boundary **except the AI Service**. | Its position that role enforcement cannot live at the gateway alone is reversed: the gateway is the only verifier, and the services trust the deployment's private network (ADR-010). The single-backend-language assumption is withdrawn (ADR-005). The workspace concept is gone (ADR-006): the isolation force in *Issue*, the gateway's workspace resolution, the internal-call cost, and the *Identity & Workspace* name. The AI Service boundary is gRPC, not REST (ADR-007); the rule stands everywhere else. Its argument that Resume Processing and the AI Service have opposite resource profiles no longer holds — both now wait on a model call (ADR-008); the boundary stands on failure isolation and credential containment. The screening handover between Hiring and Resume Processing is a message queue, not REST (ADR-013) — a second exception beside the AI Service. Its Kubernetes discovery is carried out by ADR-014 — a manifest for every workload, a local kind cluster to run them on, Compose kept for development — which corrects one claim: kube-proxy balances connections across ready Pods, not calls, so a gRPC caller stays on one AI Service Pod. |
+| **ADR-001** | The five services, the capability boundaries, the gateway, Kubernetes discovery, and REST on every boundary **except the AI Service**. | Its position that role enforcement cannot live at the gateway alone is reversed: the gateway is the only verifier, and the services trust the deployment's private network (ADR-010). The single-backend-language assumption is withdrawn (ADR-005). The workspace concept is gone (ADR-006): the isolation force in *Issue*, the gateway's workspace resolution, the internal-call cost, and the *Identity & Workspace* name. The AI Service boundary is gRPC, not REST (ADR-007); the rule stands everywhere else. Its argument that Resume Processing and the AI Service have opposite resource profiles no longer holds — both now wait on a model call (ADR-008); the boundary stands on failure isolation and credential containment. The screening handover between Hiring and Resume Processing is a message queue, not REST (ADR-013) — a second exception beside the AI Service. Hiring's pipeline events to Compliance & Insights are a third (ADR-015). |
 | **ADR-002** | The per-resume unit of work, the temporary/permanent failure classification, bounded retry before manual review, idempotent results and the computed completion. | How the work crosses between the services (ADR-013): one RabbitMQ message per resume each way replaces the REST handover, the claimable work table and the REST callback, and the broker's retry and dead-letter queues replace the hand-built retry schedule and failed-row parking. |
-| **ADR-003** | The PostgreSQL / MongoDB split and the rule that decides which store new data goes in. | Documents carry `candidate_id` alone, with no `workspace_id` (ADR-006). The document store is no longer one service's: interview guides go in a MongoDB belonging to the Hiring Service (ADR-011). |
+| **ADR-003** | The PostgreSQL / MongoDB split and the rule that decides which store new data goes in. | Documents carry `candidate_id` alone, with no `workspace_id` (ADR-006). The document store is no longer one service's: interview guides go in a MongoDB belonging to the Hiring Service (ADR-011). What serves its object storage in production, which it left open, is settled: a MinIO server inside each deployment, not a managed cloud store (ADR-014). |
 | **ADR-004** | The single credential, no fallback model, the service being unreachable from the gateway, and the rule that it never receives a raw file. | Those operations are carried over gRPC rather than REST (ADR-007). There are now four, not three: profile extraction is a model call served here (ADR-008), and it is the one operation that receives unstructured resume text, which narrows the minimisation rule and moves the protected-attribute stripping into it. |
 | **ADR-005** | The principle and the guardrails. Still *Proposed* — languages await service ownership. | Its accepted cost of role enforcement implemented once per language is not paid: the check exists only at the gateway (ADR-010). The worst case its access-check argument guards against is now a privilege mistake inside one company, not a cross-company leak (ADR-006). Its contract guardrail now covers two mechanisms: OpenAPI for REST boundaries, a `.proto` for the AI Service (ADR-007). Its Python preference for Resume Processing now rests on PDF text extraction alone — structuring the text is no longer done there (ADR-008). |
 | **ADR-006** | All of it. | — |
@@ -66,6 +73,9 @@ place that tracks which parts of an earlier record no longer hold.
 | **ADR-012** | All of it. | — |
 | **ADR-013** | All of it. | — |
 | **ADR-014** | All of it. | — |
+| **ADR-015** | All of it. | — |
+| **ADR-016** | All of it. | — |
+| **ADR-017** | All of it. | — |
 
 ## Candidate decisions
 
@@ -78,10 +88,8 @@ Identified from the architecturally significant requirements in
 | Tiered screening pipeline — deterministic filter before the model? | NFR-02, NFR-06, NFR-08 |
 | Rule-based pre-pass in front of profile extraction, once cost per batch is measured | ADR-008 |
 | Character recognition for scanned resumes, which neither extraction path handles | ADR-008 |
-| Erasure cascade — orchestration or choreography, and how the verification pass works across the two stores ADR-003 introduced | FR-5.3, FR-5.8, NFR-13 |
 | Resume ingestion channel — upload only, or an automated adapter | Open question |
 | Deployment and upgrade pipeline for N customer instances | ADR-006 |
-| Scheduler shared by UC-4 and UC-5 — where the timer runs, behaviour with more than one replica, resuming a sweep that dies half-way | FR-4.2, FR-5.2 |
 | Repository structure once implementation starts — monorepo layout, and where the shared OpenAPI definitions live | Open question, ADR-005 |
 | Primary and secondary owner for each service | ADR-005 rule 5 |
 

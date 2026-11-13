@@ -45,9 +45,6 @@ Raised by the ADRs recorded on 2026-09-11, and load-bearing for them:
 
 Each of these should become an ADR, or be folded into one, before implementation begins.
 
-- [ ] **Erasure cascade — orchestration or choreography.** The Service–Operations–Collaborators
-      table assumes orchestration: Compliance & Insights calls each holder and tracks completion.
-      Needs an ADR before it is built, not a table row.
 - [ ] **Who owns the candidate record, and is "talent pool" still a useful term?** FR-2.11 says
       candidates are added to the talent pool, but the pool is a view — candidates that have not
       expired — not a collection anyone maintains, and the term earned its place when D-1
@@ -68,11 +65,6 @@ Each of these should become an ADR, or be folded into one, before implementation
 - [ ] **Tiered screening pipeline.** A cheap deterministic filter before the model, so that
       NFR-02/NFR-06/NFR-08 hold when a provider's rate limit caps concurrency before worker
       count does. ADR-002 and ADR-004 leave this open deliberately.
-- [ ] **Erasure cascade — orchestration or choreography.** ADR-001 makes erasure a cross-service
-      protocol and ADR-003 makes it span two stores; neither says which component drives it or
-      how the verification pass works (FR-5.3, FR-5.8).
-- [ ] **Scheduler design** shared by UC-4 (staleness) and UC-5 (retention). Where the timer runs,
-      how it behaves with more than one replica, and how a sweep that dies half-way resumes.
 - [ ] **Session and token mechanism for UC-0**, and how the role travels on internal REST calls.
       ADR-001 requires that it does, and says enforcement cannot live only at the gateway — but
       not how.

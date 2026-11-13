@@ -97,6 +97,14 @@ func (r *InterviewGuideRepository) Save(ctx context.Context, g *domain.Interview
 	return nil
 }
 
+// DeleteByCandidate removes the candidate's guides for every opening.
+func (r *InterviewGuideRepository) DeleteByCandidate(ctx context.Context, candidateID string) error {
+	if _, err := r.guides.DeleteMany(ctx, bson.D{{Key: "candidate_id", Value: candidateID}}); err != nil {
+		return fmt.Errorf("deleting interview guides: %w", err)
+	}
+	return nil
+}
+
 // FindByCandidate returns the stored guide, or usecase.ErrGuideNotFound.
 func (r *InterviewGuideRepository) FindByCandidate(ctx context.Context, jobOpeningID, candidateID string) (*domain.InterviewGuide, error) {
 	filter := bson.D{{Key: "job_opening_id", Value: jobOpeningID}, {Key: "candidate_id", Value: candidateID}}

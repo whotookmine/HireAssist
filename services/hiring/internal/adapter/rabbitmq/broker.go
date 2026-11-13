@@ -41,6 +41,9 @@ type Topology struct {
 	// DeadLetterQueue is Hiring's own: the results it refuses are kept there for a person to look
 	// at, instead of being retried forever or dropped.
 	DeadLetterQueue string
+	// PipelineQueue carries pipeline events to the Compliance & Insights Service (ADR-015),
+	// whose contract is services/compliance/MESSAGES.md. Empty declares none.
+	PipelineQueue string
 }
 
 // DefaultTopology is the topology of MESSAGES.md.
@@ -48,6 +51,7 @@ var DefaultTopology = Topology{
 	RequestedQueue:  "screening.requested",
 	CompletedQueue:  "screening.completed",
 	DeadLetterQueue: "screening.completed.dlq",
+	PipelineQueue:   "pipeline.events",
 }
 
 var (
@@ -56,7 +60,7 @@ var (
 	ErrUnavailable = errors.New("message broker unavailable")
 	// ErrNoQueue means the broker had no queue to put the request in and handed it back. It is
 	// not sent; it waits for the relay like any other.
-	ErrNoQueue = errors.New("no queue takes screening requests")
+	ErrNoQueue = errors.New("no queue takes the message")
 )
 
 // Results is the use case consumed results are handed to.
@@ -176,7 +180,10 @@ func (b *Broker) setPublisher(ch *amqp.Channel, returns chan amqp.Return) {
 // requires of the shared two. Declaring is idempotent, so whichever service starts first creates
 // them, and a request published before Resume Processing starts waits in its queue.
 func DeclareQueues(ch *amqp.Channel, topo Topology) error {
-	for _, q := range []string{topo.RequestedQueue, topo.CompletedQueue, topo.DeadLetterQueue} {
+	for _, q := range []string{topo.RequestedQueue, topo.CompletedQueue, topo.DeadLetterQueue, topo.PipelineQueue} {
+		if q == "" {
+			continue
+		}
 		if _, err := ch.QueueDeclare(q, true, false, false, false, nil); err != nil {
 			return fmt.Errorf("declaring queue %s: %w", q, err)
 		}
@@ -196,7 +203,23 @@ func (b *Broker) RequestScreening(ctx context.Context, batch *domain.ScreeningBa
 	if err != nil {
 		return fmt.Errorf("encoding the request for %s: %w", e.ResumeID, err)
 	}
+	return b.publish(ctx, b.topo.RequestedQueue, e.ResumeID, correlationID, body)
+}
 
+// PublishPipelineEvent publishes one pipeline event and returns once the broker has confirmed
+// it is stored (usecase.PipelinePublisher), with the event id as the message id. It is mandatory,
+// like a screening request: should no queue take it, it comes back and waits for the relay.
+func (b *Broker) PublishPipelineEvent(ctx context.Context, e domain.PipelineEvent) error {
+	correlationID := newCorrelationID()
+	body, err := json.Marshal(NewPipelineEvent(e, correlationID))
+	if err != nil {
+		return fmt.Errorf("encoding pipeline event %s: %w", e.ID, err)
+	}
+	return b.publish(ctx, b.topo.PipelineQueue, e.ID, correlationID, body)
+}
+
+// publish sends one persistent message to a queue and waits for the broker's confirmation.
+func (b *Broker) publish(ctx context.Context, queue, messageID, correlationID string, body []byte) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if b.pub == nil {
@@ -204,10 +227,10 @@ func (b *Broker) RequestScreening(ctx context.Context, batch *domain.ScreeningBa
 	}
 	ctx, cancel := context.WithTimeout(ctx, confirmTimeout)
 	defer cancel()
-	confirmation, err := b.pub.PublishWithDeferredConfirmWithContext(ctx, "", b.topo.RequestedQueue, true, false, amqp.Publishing{
+	confirmation, err := b.pub.PublishWithDeferredConfirmWithContext(ctx, "", queue, true, false, amqp.Publishing{
 		ContentType:   "application/json",
 		DeliveryMode:  amqp.Persistent,
-		MessageId:     e.ResumeID,
+		MessageId:     messageID,
 		CorrelationId: correlationID,
 		Headers:       amqp.Table{correlationHeader: correlationID},
 		AppId:         "hiring",
@@ -223,7 +246,7 @@ func (b *Broker) RequestScreening(ctx context.Context, batch *domain.ScreeningBa
 	}
 	// The broker hands back an unroutable message before it confirms it, so any return is
 	// already waiting by the time the confirmation arrives.
-	if b.returned(e.ResumeID) {
+	if b.returned(messageID) {
 		return ErrNoQueue
 	}
 	if !acked {

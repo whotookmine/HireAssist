@@ -26,7 +26,7 @@ func NewScreeningRepository(pool *pgxpool.Pool) *ScreeningRepository {
 }
 
 // SaveBatch inserts a new batch, its snapshot and its entries in one transaction.
-func (r *ScreeningRepository) SaveBatch(ctx context.Context, b *domain.ScreeningBatch) error {
+func (r *ScreeningRepository) SaveBatch(ctx context.Context, b *domain.ScreeningBatch, events ...domain.PipelineEvent) error {
 	return pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx,
 			`INSERT INTO screening_batches (id, job_opening_id, submitted_at) VALUES ($1, $2, $3)`,
@@ -52,7 +52,7 @@ func (r *ScreeningRepository) SaveBatch(ctx context.Context, b *domain.Screening
 		); err != nil {
 			return fmt.Errorf("saving the resumes of %s: %w", b.ID, err)
 		}
-		return nil
+		return insertEvents(ctx, tx, events)
 	})
 }
 
@@ -98,7 +98,7 @@ func (r *ScreeningRepository) Unrequested(ctx context.Context, limit int) ([]dom
 }
 
 // SaveEntry stores one resume's status, result, override and shortlist.
-func (r *ScreeningRepository) SaveEntry(ctx context.Context, e *domain.ScreeningEntry) error {
+func (r *ScreeningRepository) SaveEntry(ctx context.Context, e *domain.ScreeningEntry, events ...domain.PipelineEvent) error {
 	var (
 		candidate, reason             *string
 		score, overrideScore          *int
@@ -120,19 +120,44 @@ func (r *ScreeningRepository) SaveEntry(ctx context.Context, e *domain.Screening
 	}
 	listed = nonZero(e.ShortlistedAt)
 
-	tag, err := r.pool.Exec(ctx, `
-		UPDATE screening_entries SET
-			status = $2, candidate_id = $3, score = $4, meets_must_haves = $5, unmet_must_haves = $6,
-			reason = $7, completed_at = $8, override_score = $9, overridden_at = $10, shortlisted_at = $11
-		WHERE resume_id = $1`,
-		e.ResumeID, string(e.Status), candidate, score, meets, unmet, reason, completed, overrideScore, overridden, listed)
+	return pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `
+			UPDATE screening_entries SET
+				status = $2, candidate_id = $3, score = $4, meets_must_haves = $5, unmet_must_haves = $6,
+				reason = $7, completed_at = $8, override_score = $9, overridden_at = $10, shortlisted_at = $11
+			WHERE resume_id = $1`,
+			e.ResumeID, string(e.Status), candidate, score, meets, unmet, reason, completed, overrideScore, overridden, listed)
+		if err != nil {
+			return fmt.Errorf("saving resume %s: %w", e.ResumeID, err)
+		}
+		if tag.RowsAffected() == 0 {
+			return usecase.ErrResumeNotFound
+		}
+		return insertEvents(ctx, tx, events)
+	})
+}
+
+// ResumeKeysOfCandidate returns the object keys of the resumes screened as the candidate's.
+func (r *ScreeningRepository) ResumeKeysOfCandidate(ctx context.Context, candidateID string) ([]string, error) {
+	rows, err := r.pool.Query(ctx, `SELECT object_key FROM screening_entries WHERE candidate_id = $1`, candidateID)
 	if err != nil {
-		return fmt.Errorf("saving resume %s: %w", e.ResumeID, err)
+		return nil, fmt.Errorf("finding the resumes of a candidate: %w", err)
 	}
-	if tag.RowsAffected() == 0 {
-		return usecase.ErrResumeNotFound
-	}
-	return nil
+	return pgx.CollectRows(rows, pgx.RowTo[string])
+}
+
+// EraseCandidate deletes the candidate's resume entries and removes the candidate id from the
+// pipeline outbox, in one transaction.
+func (r *ScreeningRepository) EraseCandidate(ctx context.Context, candidateID string) error {
+	return pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `DELETE FROM screening_entries WHERE candidate_id = $1`, candidateID); err != nil {
+			return fmt.Errorf("erasing a candidate's resumes: %w", err)
+		}
+		if _, err := tx.Exec(ctx, `UPDATE pipeline_outbox SET candidate_id = NULL WHERE candidate_id = $1`, candidateID); err != nil {
+			return fmt.Errorf("erasing a candidate from the pipeline outbox: %w", err)
+		}
+		return nil
+	})
 }
 
 // MarkRequested records when the broker confirmed a resume's screening request.

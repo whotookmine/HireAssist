@@ -1,0 +1,96 @@
+@startuml c4-container
+' HireAssist — C4 Level 2: Container
+'
+' This file is the source of the diagram. c4-container.png next to it is rendered from it.
+' After editing, re-render and commit both files together:
+'
+'   plantuml -tpng docs/diagrams/c4-container.puml
+'
+' Drawn from the root docker-compose.yml, docs/SERVICE-OPERATIONS-COLLABORATORS.md and the
+' version 2 architecture diagram. It must agree with all three; check it whenever one changes.
+'
+' - Each database is its own container even where two share one server (Guides DB and
+'   Profiles DB are separate databases on one MongoDB): the diagram shows ownership; how many
+'   servers run is a deployment fact.
+' - Containers and relationships that are designed but not built carry the "planned" tag
+'   (dashed) and name no technology that has not been chosen. A dashed arrow out of a built
+'   container means the other side has not been built yet: Hiring's batch-finished notices.
+' - Developer tools in compose (Adminer, mongo-express) are not part of the system and are
+'   deliberately absent.
+
+!include <C4/C4_Container>
+
+' Left to right, so the screening pipeline reads in one line:
+' Hiring -> broker -> Resume Processing -> AI Service -> LLM Provider.
+LAYOUT_LEFT_RIGHT()
+
+title HireAssist — Containers (C4 Level 2)
+
+AddElementTag("planned", $borderStyle=DashedLine(), $legendText="planned: designed, not yet built")
+AddRelTag("planned", $lineStyle=DashedLine(), $legendText="planned relationship")
+AddRelTag("grpc", $textColor="#B26B00", $lineColor="#B26B00", $legendText="gRPC (ADR-007)")
+AddRelTag("amqp", $textColor="#7B4FA0", $lineColor="#7B4FA0", $legendText="AMQP via RabbitMQ (ADR-013, ADR-015)")
+
+Person(recruiter, "Recruiter / Admin", "Signed-in member; an Admin also sets retention and manages members")
+
+System_Boundary(hireassist, "HireAssist") {
+    Container(web, "Web App", "React, Vite; served by nginx", "Single-page app for Recruiters and Admins")
+    Container(gateway, "API Gateway", "Go", "The only published entry point. Verifies the JWT locally, enforces the caller's role, rate-limits and routes (ADR-009, ADR-010)")
+
+    Container(identity, "Identity Service", "Go", "Authenticates members, issues and refreshes tokens, manages members and roles")
+    ContainerDb(identityDb, "Identity DB", "PostgreSQL", "Members, roles, sessions")
+
+    Container(hiring, "Hiring Service", "Go", "Job openings and criteria, screening batches, ranking, overrides, shortlist, interview guides")
+    ContainerDb(hiringDb, "Hiring DB", "PostgreSQL", "Openings, criteria, batches and per-resume status, scores, decisions")
+    ContainerDb(guidesDb, "Guides DB", "MongoDB", "Interview guides (ADR-011)")
+
+    ContainerQueue(broker, "Message Broker", "RabbitMQ", "Queues screening.requested and screening.completed: one message per resume")
+
+    Container(rp, "Resume Processing Service", "Node.js", "Extracts resume text, builds the candidate profile, scores it against the criteria")
+    ContainerDb(profilesDb, "Profiles DB", "MongoDB", "Candidate profiles, parsed text, per-criterion scores and justifications")
+    ContainerDb(files, "Resume Files", "MinIO, S3 API", "Original uploaded resume files")
+
+    Container(ai, "AI Service", "Python", "The only place a model is called. Derives criteria, extracts and scores profiles, drafts questions; strips protected attributes first")
+
+    Container(compliance, "Compliance & Insights Service", "Go", "Retention policy and sweeps, orchestrated erasure (ADR-016), stale-position flags, pipeline dashboard, audit logs. Runs its sweeps on its own timer: the System Scheduler is a component here (ADR-017)")
+    ContainerDb(complianceDb, "Compliance DB", "PostgreSQL", "Retention policy, pipeline projection, erasure and access audit logs")
+}
+
+System_Ext(llm, "LLM Provider", "Anthropic API, with OpenAI as a configurable substitute")
+System_Ext(email, "Email Provider", "Delivers notification email to Recruiters")
+
+Rel(recruiter, web, "Uses", "HTTPS")
+Rel(web, gateway, "Calls the API", "HTTPS/JSON")
+
+Rel(gateway, identity, "Sign-in, token refresh, member management", "REST")
+Rel(gateway, hiring, "Openings, screening, interview guides", "REST")
+Rel(gateway, compliance, "Retention, erasure, dashboard; records rejected requests", "REST")
+
+Rel(identity, identityDb, "Reads/writes", "SQL")
+
+Rel(hiring, broker, "Publishes screening.requested; consumes screening.completed", "AMQP", $tags="amqp")
+Rel(broker, rp, "Delivers screening.requested; receives screening.completed", "AMQP", $tags="amqp")
+Rel(hiring, rp, "Gets candidate profile and justification", "REST")
+
+Rel(hiring, hiringDb, "Reads/writes", "SQL")
+Rel(hiring, guidesDb, "Reads/writes", "MongoDB wire protocol")
+Rel(hiring, files, "Stores uploaded resumes", "S3 API")
+Rel(hiring, ai, "Derives criteria, generates interview questions", "gRPC", $tags="grpc")
+
+Rel(rp, files, "Reads resume files", "S3 API")
+Rel(rp, ai, "Extracts profiles, scores against criteria", "gRPC", $tags="grpc")
+Rel(rp, profilesDb, "Reads/writes", "MongoDB wire protocol")
+
+Rel(ai, llm, "Prompts", "HTTPS")
+
+Rel(hiring, broker, "Publishes pipeline events (ADR-015)", "AMQP")
+Rel(broker, compliance, "Delivers pipeline.events", "AMQP", $tags="amqp")
+Rel(compliance, hiring, "Erases hiring data", "REST")
+Rel(compliance, rp, "Lists and erases candidate profiles", "REST")
+Rel(compliance, complianceDb, "Reads/writes", "SQL")
+Rel(compliance, email, "Sends stale-position and retention notices", "SMTP")
+Rel(hiring, email, "Sends batch-finished notices", "SMTP / API", $tags="planned")
+
+
+SHOW_LEGEND()
+@enduml

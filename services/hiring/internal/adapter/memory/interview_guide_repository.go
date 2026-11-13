@@ -43,6 +43,18 @@ func (r *InterviewGuideRepository) FindByCandidate(_ context.Context, jobOpening
 	return &c, nil
 }
 
+// DeleteByCandidate removes the candidate's guides for every opening.
+func (r *InterviewGuideRepository) DeleteByCandidate(_ context.Context, candidateID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for k := range r.byPair {
+		if k.candidateID == candidateID {
+			delete(r.byPair, k)
+		}
+	}
+	return nil
+}
+
 func cloneGuide(g domain.InterviewGuide) domain.InterviewGuide {
 	g.Questions = append([]domain.Question(nil), g.Questions...)
 	return g
