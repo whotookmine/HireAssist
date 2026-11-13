@@ -108,7 +108,7 @@ func testGateway(t *testing.T, keys string, identity, hiring *upstream) http.Han
 		t.Fatalf("parse keys: %v", err)
 	}
 	g := &gateway{
-		routes:   routeTable(identity.url(t), hiring.url(t)),
+		routes:   routeTable(identity.url(t), hiring.url(t), newUpstream(t, "{}").url(t)),
 		verifier: &verifier{keys: parsed},
 		limiter:  newRateLimiter(1000, 1000),
 	}

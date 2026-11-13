@@ -2,9 +2,13 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"time"
 )
 
 type gateway struct {
@@ -12,6 +16,11 @@ type gateway struct {
 	verifier *verifier
 	limiter  *rateLimiter
 	cookies  sessionCookies
+	// audit is the Compliance & Insights Service, which keeps the access audit log. Nil
+	// leaves rejections in the log only.
+	audit *url.URL
+	// reported is closed over by tests to wait for the audit call; nil in production.
+	reported func()
 }
 
 // handler builds the whole gateway as one http.Handler. The liveness and readiness probes are
@@ -78,6 +87,7 @@ func (g *gateway) forward(w http.ResponseWriter, r *http.Request) {
 
 		if !matched.needs.allows(who.role) {
 			g.rejected(r, matched, who.memberID, "role", nil)
+			g.report(r, matched, who)
 			writeError(w, http.StatusForbidden,
 				"this route needs the "+matched.needs.String()+" role", nil)
 			return
@@ -110,12 +120,7 @@ var forwardedIdentityHeaders = map[string]struct{}{
 	"X-Hireassist-Role":      {},
 }
 
-// rejected records a request the gateway refused.
-//
-// FR-0.4 requires the rejected attempt to be recorded, and ADR-001 puts that in the access
-// audit log the Compliance & Insights Service owns, through recordAuthorisationRejected(). That
-// service does not exist yet, so this logs. The call belongs here when it does — the rejection
-// is not visible anywhere else, because the request never reaches a service.
+// rejected logs a request the gateway refused, whatever the reason.
 func (g *gateway) rejected(r *http.Request, matched route, memberID, why string, cause error) {
 	attrs := []any{
 		"event", "authorisation_rejected",
@@ -131,4 +136,36 @@ func (g *gateway) rejected(r *http.Request, matched route, memberID, why string,
 		attrs = append(attrs, "error", cause.Error())
 	}
 	slog.Warn("authorisation rejected", attrs...)
+}
+
+// report sends a role rejection to the access audit log (FR-0.4, recordAuthorisationRejected()).
+// Only role rejections go: FR-0.4 is about a role too low, and a request with no valid token
+// names no member, so recording those would let anyone fill the audit log. The call runs in the
+// background with a short timeout, because the caller's 403 does not wait on it; a failure is
+// logged, and the rejection is still in the gateway's own log.
+func (g *gateway) report(r *http.Request, matched route, who caller) {
+	if g.audit == nil {
+		return
+	}
+	required := roleAdmin // spelled as the token spells roles; only an admin route can refuse a member
+	body, _ := json.Marshal(map[string]any{
+		"member_id": who.memberID, "role": who.role, "required_role": required,
+		"method": r.Method, "path": r.URL.Path, "occurred_at": time.Now().UTC(),
+	})
+	target := g.audit.JoinPath("/internal/access-rejections").String()
+	go func() {
+		if g.reported != nil {
+			defer g.reported()
+		}
+		client := http.Client{Timeout: 3 * time.Second}
+		resp, err := client.Post(target, "application/json", bytes.NewReader(body))
+		if err != nil {
+			slog.Error("access audit unreachable; rejection only logged", "error", err.Error())
+			return
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusCreated {
+			slog.Error("access audit refused the rejection", "status", resp.StatusCode)
+		}
+	}()
 }

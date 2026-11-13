@@ -42,7 +42,7 @@ Term project for **Software Architecture**, Chulalongkorn University.
 | [services/hiring/](services/hiring/) | **Code.** The Hiring Service — Go, PostgreSQL and MongoDB, REST with an OpenAPI contract, RabbitMQ and MinIO. Job openings with AI-proposed criteria (UC-1), batch screening through the message broker (UC-2) and interview guides (UC-3). |
 | [services/gateway/](services/gateway/) | **Code.** The API Gateway — Go. Routing, local token verification (ADR-009), the role gate and rate limiting. |
 | [proto/](proto/) | Shared gRPC contracts. Callers generate clients from these. |
-| [services/compliance/](services/compliance/) | **Code.** The Compliance & Insights Service — Go, PostgreSQL, a RabbitMQ consumer. Retention policy, sweeps and orchestrated erasure (UC-5), the pipeline dashboard and stale-position flags (UC-4), the access audit log. Waiting on Hiring's pipeline events and erasure endpoint, and on gateway routes. |
+| [services/compliance/](services/compliance/) | **Code.** The Compliance & Insights Service — Go, PostgreSQL, a RabbitMQ consumer. Retention policy, sweeps and orchestrated erasure (UC-5), the pipeline dashboard and stale-position flags (UC-4), the access audit log. Reached through the gateway; waiting on Hiring's pipeline events and erasure endpoint. |
 | [services/web/](services/web/) | **Code.** The HireAssist Web UI — React, TypeScript, Mantine. Sign-in and UC-1 to UC-3, against the gateway or on a mock backend in the browser. |
 | [docs/OVERVIEW.md](docs/OVERVIEW.md) | Runtime view — what each service owns, who calls whom, and the call sequence behind each use case. |
 | `docs/build-proposal-docx.py`, `docs/adr/build-docx.py` | Build the two Word deliverables. The documents themselves are generated, not committed. |

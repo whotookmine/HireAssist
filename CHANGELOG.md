@@ -15,6 +15,17 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-11-13 19:35 — Gateway routes Compliance and reports role rejections
+
+- **`/compliance/*` is routed through the gateway.** The dashboard and held expiries are open to
+  either role (FR-4.1, FR-5.6); the policy, erasures, sweeps and access audit are Admin's.
+  Compliance's `/internal/*` is never routed, so only the gateway can write the access audit log.
+- **Only 403s go to the access audit log (FR-0.4).** A request with no valid token names no
+  member, so recording it would let anyone fill the log; it stays in the gateway's own log. The
+  call is fire-and-forget, so a Compliance outage loses the entry, not the response.
+- Container diagram: the gateway → Compliance arrow is no longer planned.
+- Outstanding: Hiring's pipeline events and erasure endpoint; web screens for UC-4, UC-5, UC-6.
+
 ## 2026-11-13 18:50 — Compliance & Insights Service built; ADR-015, ADR-016, ADR-017
 
 - **ADR-015 (Accepted): pipeline events travel on RabbitMQ** (`pipeline.events`), not REST, so

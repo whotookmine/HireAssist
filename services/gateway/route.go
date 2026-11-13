@@ -46,7 +46,7 @@ type route struct {
 // Paths are forwarded unchanged: the prefix a caller uses is the path the owning service
 // serves. Nothing is rewritten, so a route here can be read against that service's OpenAPI
 // document without translating it.
-func routeTable(identity, hiring *url.URL) []route {
+func routeTable(identity, hiring, compliance *url.URL) []route {
 	return []route{
 		// UC-0 (ADR-009): sign-in returns an access token and a refresh token, and a refresh
 		// token is exchanged once. Changing a password is public for the same reason refresh
@@ -63,6 +63,13 @@ func routeTable(identity, hiring *url.URL) []route {
 
 		// UC-1, UC-2, UC-3. Every hiring operation is open to either role.
 		{prefix: "/job-openings", upstream: hiring, needs: member},
+
+		// UC-4, UC-5. The policy, erasures, sweeps and access audit are Admin's (FR-5.1, FR-5.7,
+		// NFR-12); the dashboard and held expiries are any member's (FR-4.1, FR-5.6). The
+		// service's /internal/* routes are never listed here, so a caller cannot forge an entry.
+		{prefix: "/compliance", upstream: compliance, needs: admin},
+		{prefix: "/compliance/dashboard", upstream: compliance, needs: member},
+		{prefix: "/compliance/held-expiries", upstream: compliance, needs: member},
 	}
 }
 

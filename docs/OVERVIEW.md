@@ -34,7 +34,7 @@ and Resume Processing, which travels as RabbitMQ messages**
   ([ADR-017](adr/ADR-017-in-process-scheduler.md)) and does not pass through it.
 - **Calls** — no one to check a token: verification is local
   ([ADR-009](adr/ADR-009-jwt-with-refresh-tokens.md)), and the token is forwarded unchanged.
-  `Compliance.recordAuthorisationRejected()` on every rejection; routes onward to Identity,
+  `Compliance.recordAuthorisationRejected()` on every rejection for want of a role (a request with no valid token names no one, and is only logged); routes onward to Identity,
   Hiring, Compliance and Resume Processing. Never the AI Service.
 - **It is the only place a token is checked**
   ([ADR-010](adr/ADR-010-verification-at-the-gateway-only.md)). The services behind it do not

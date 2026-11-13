@@ -5,9 +5,8 @@ matches a route, verifies the access token, checks the role the route requires, 
 caller, and forwards the request to the service that owns it.
 
 **Status:** routing, token verification, the role gate and rate limiting work, and the Identity
-Service now signs tokens, so signing in through the gateway works end to end. One thing is still
-waiting on other work: the Compliance & Insights Service does not exist, so a rejected request is
-logged rather than sent to the access audit log (FR-0.4).
+Service now signs tokens, so signing in through the gateway works end to end. A request refused
+for want of a role is sent to the Compliance & Insights Service's access audit log (FR-0.4).
 
 TLS termination (ADR-001) is not here either — it belongs in front of this process in a real
 deployment, and locally everything is plain HTTP.
@@ -29,11 +28,25 @@ against the owning service's OpenAPI document without translating it.
 | `POST /auth/change-password` | Identity | nothing — a member with a temporary password cannot sign in first (FR-0.5); the Identity Service asks for the current password |
 | `/members/*` | Identity | Admin |
 | `/job-openings/*` | Hiring | either role |
+| `/compliance/dashboard`, `/compliance/held-expiries/*` | Compliance | either role |
+| every other `/compliance/*` | Compliance | Admin |
 | `POST /auth/sign-out` | the gateway itself | nothing — clears the web app's refresh cookie |
 | `GET /healthz`, `GET /readyz` | the gateway itself | nothing |
 
-Anything else is a 404. Nothing is forwarded by default: a gateway that forwards the unknown is
+Anything else is a 404, Compliance's `/internal/access-rejections` included: only the gateway
+writes to the access audit log. Nothing is forwarded by default: a gateway that forwards the unknown is
 a gateway that exposes the next service somebody adds.
+
+## What a rejection leaves behind
+
+Every refused request is logged here. A request refused **for want of a role** (a 403) is also
+posted to Compliance's `POST /internal/access-rejections`, with the member id, their role, the
+role the route needed, the method and the path. That is FR-0.4's "record the rejected attempt".
+
+A request with no valid token (a 401) is logged only. It names no member, so recording it
+would let anyone on the network fill the audit log. The post runs in the background with a
+three-second timeout: the caller's 403 does not wait for it, and if Compliance is down the
+rejection is in this log and nowhere else.
 
 ## The web app's refresh cookie
 
@@ -117,6 +130,7 @@ curl -s localhost:8000/auth/sign-in \
 | `PORT` | `8000` | |
 | `IDENTITY_URL` | `http://localhost:8081` | |
 | `HIRING_URL` | `http://localhost:8080` | |
+| `COMPLIANCE_URL` | `http://localhost:8083` | the `/compliance/*` routes and the access audit log |
 | `JWT_PUBLIC_KEYS` | — | one PEM block, or a JSON array of `{"kid", "pem"}` |
 | `RATE_LIMIT_PER_SECOND` | `20` | per caller |
 | `RATE_LIMIT_BURST` | `40` | how many may arrive at once |

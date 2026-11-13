@@ -41,7 +41,7 @@ func newIdentityStub(t *testing.T) *identityStub {
 func cookieGateway(t *testing.T, identity *identityStub) http.Handler {
 	t.Helper()
 	g := &gateway{
-		routes:   routeTable(identity.url(t), newUpstream(t, "{}").url(t)),
+		routes:   routeTable(identity.url(t), newUpstream(t, "{}").url(t), newUpstream(t, "{}").url(t)),
 		verifier: &verifier{},
 		limiter:  newRateLimiter(1000, 1000),
 		cookies:  sessionCookies{secure: true},

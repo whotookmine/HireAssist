@@ -15,7 +15,7 @@
 ' - Containers and relationships that are designed but not built carry the "planned" tag
 '   (dashed) and name no technology that has not been chosen. A dashed arrow out of a built
 '   container means the other side has not been built yet: Hiring's pipeline events and erasure
-'   endpoint, and the gateway's route to Compliance.
+'   endpoint.
 ' - Developer tools in compose (Adminer, mongo-express) are not part of the system and are
 '   deliberately absent.
 
@@ -65,7 +65,7 @@ Rel(web, gateway, "Calls the API", "HTTPS/JSON")
 
 Rel(gateway, identity, "Sign-in, token refresh, member management", "REST")
 Rel(gateway, hiring, "Openings, screening, interview guides", "REST")
-Rel(gateway, compliance, "Retention, erasure, dashboard; records rejected requests", "REST", $tags="planned")
+Rel(gateway, compliance, "Retention, erasure, dashboard; records rejected requests", "REST")
 
 Rel(identity, identityDb, "Reads/writes", "SQL")
 

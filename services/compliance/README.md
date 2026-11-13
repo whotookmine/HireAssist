@@ -5,20 +5,19 @@ audit logs. It serves the dashboard and stale-position flags (UC-4) and retentio
 (UC-5), and keeps the access audit log the gateway reports to (FR-0.4).
 
 **Status:** every operation in the Service–Operations–Collaborators table is built and tested,
-and the service runs in the root compose stack. Three other services still need to call it, so
-UC-4 and UC-5 do not work end to end yet:
+and the service runs in the root compose stack. The gateway routes `/compliance/*` here and
+reports role rejections. Hiring still needs to call it, so UC-4 and UC-5 do not work end to end
+yet:
 
 - **Hiring does not publish pipeline events yet** (`MESSAGES.md`). Until it does, the dashboard
   is empty, and every candidate linked to an opening is held for a decision instead of expiring,
   which is the safe failure.
 - **Hiring does not serve `DELETE /candidates/{id}` yet.** Every erasure therefore stays
   *pending* on Hiring and is retried each sweep. Resume Processing's half completes.
-- **The gateway does not route `/compliance/*` here, or report rejections.** Locally the API is
-  reachable directly on port 8083.
 
 | | |
 |---|---|
-| API | http://localhost:8083 |
+| API | through the gateway, http://localhost:8000/compliance/…; directly on http://localhost:8083 |
 | Language | Go, laid out like the Hiring Service (domain → usecase → adapters → app) |
 | Owner | Patiphon Puntusin |
 
