@@ -65,7 +65,9 @@ and Resume Processing, which travels as RabbitMQ messages**
   the Object Storage and Email adapters. **Publishes** `screening.requested`, one per resume,
   holding each in PostgreSQL until the broker confirms it, and the pipeline events Compliance
   builds its dashboard from, on `pipeline.events`
-  ([ADR-015](adr/ADR-015-pipeline-events-on-the-broker.md); not built yet).
+  ([ADR-015](adr/ADR-015-pipeline-events-on-the-broker.md)). Each event is written in the same
+  transaction as the change it reports and relayed from there, so none is lost or sent for a
+  change that was rolled back.
 
 ### Resume Processing Service
 

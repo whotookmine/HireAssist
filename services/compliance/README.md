@@ -6,14 +6,8 @@ audit logs. It serves the dashboard and stale-position flags (UC-4) and retentio
 
 **Status:** every operation in the Service–Operations–Collaborators table is built and tested,
 and the service runs in the root compose stack. The gateway routes `/compliance/*` here and
-reports role rejections. Hiring still needs to call it, so UC-4 and UC-5 do not work end to end
-yet:
-
-- **Hiring does not publish pipeline events yet** (`MESSAGES.md`). Until it does, the dashboard
-  is empty, and every candidate linked to an opening is held for a decision instead of expiring,
-  which is the safe failure.
-- **Hiring does not serve `DELETE /candidates/{id}` yet.** Every erasure therefore stays
-  *pending* on Hiring and is retried each sweep. Resume Processing's half completes.
+reports role rejections, Hiring publishes the pipeline events and serves its erasure, so UC-4
+and UC-5 work end to end through the API. The web app has no screens for them yet.
 
 | | |
 |---|---|

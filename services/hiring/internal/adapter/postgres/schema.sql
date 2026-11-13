@@ -72,3 +72,23 @@ CREATE TABLE IF NOT EXISTS screening_entries (
 
 CREATE INDEX IF NOT EXISTS screening_entries_unrequested ON screening_entries (batch_id, position)
     WHERE status = 'pending' AND requested_at IS NULL;
+
+-- UC-4 (ADR-015). The outbox of pipeline events: each is written in the same transaction as the
+-- change it reports, and published to the broker from here, so an event is neither lost nor sent
+-- for a change that was rolled back. Published rows are kept; the candidate id is removed from
+-- them when the candidate is erased.
+CREATE TABLE IF NOT EXISTS pipeline_outbox (
+    event_id                   text        PRIMARY KEY DEFAULT 'pe_' || replace(gen_random_uuid()::text, '-', ''),
+    seq                        bigint      GENERATED ALWAYS AS IDENTITY UNIQUE,
+    type                       text        NOT NULL,
+    occurred_at                timestamptz NOT NULL,
+    job_opening_id             text        NOT NULL,
+    title                      text,
+    expected_time_to_fill_days integer,
+    resume_id                  text,
+    candidate_id               text,
+    published_at               timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS pipeline_outbox_unpublished ON pipeline_outbox (seq) WHERE published_at IS NULL;
+CREATE INDEX IF NOT EXISTS screening_entries_candidate ON screening_entries (candidate_id) WHERE candidate_id IS NOT NULL;

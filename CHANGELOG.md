@@ -15,6 +15,18 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-11-13 20:05 — Hiring publishes pipeline events and serves its erasure
+
+- **Hiring publishes ADR-015's pipeline events from a transactional outbox.** Each event is
+  written in the same PostgreSQL transaction as the change it reports and relayed from there, so
+  none is lost or sent for a change that rolled back. Only a scored result counts as screened.
+- **Hiring serves `eraseHiringData()`** as `DELETE /candidates/{id}`, answering 204 as ADR-016
+  requires. Files are deleted before the rows that locate them, so a failure part-way leaves
+  nothing unfindable. UC-4 and UC-5 now work end to end through the API.
+- Known gap: a resume not yet screened has no candidate id, so an erasure in that window misses
+  it (Hiring README). Container diagram: both Hiring arrows are no longer planned.
+- Outstanding: web screens for UC-4, UC-5, UC-6; the batch-finished notice (FR-2.12).
+
 ## 2026-11-13 19:35 — Gateway routes Compliance and reports role rejections
 
 - **`/compliance/*` is routed through the gateway.** The dashboard and held expiries are open to

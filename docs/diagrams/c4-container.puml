@@ -14,8 +14,7 @@
 '   servers run is a deployment fact.
 ' - Containers and relationships that are designed but not built carry the "planned" tag
 '   (dashed) and name no technology that has not been chosen. A dashed arrow out of a built
-'   container means the other side has not been built yet: Hiring's pipeline events and erasure
-'   endpoint.
+'   container means the other side has not been built yet: Hiring's batch-finished notices.
 ' - Developer tools in compose (Adminer, mongo-express) are not part of the system and are
 '   deliberately absent.
 
@@ -84,9 +83,9 @@ Rel(rp, profilesDb, "Reads/writes", "MongoDB wire protocol")
 
 Rel(ai, llm, "Prompts", "HTTPS")
 
-Rel(hiring, broker, "Publishes pipeline events (ADR-015)", "AMQP", $tags="planned")
+Rel(hiring, broker, "Publishes pipeline events (ADR-015)", "AMQP")
 Rel(broker, compliance, "Delivers pipeline.events", "AMQP", $tags="amqp")
-Rel(compliance, hiring, "Erases hiring data", "REST", $tags="planned")
+Rel(compliance, hiring, "Erases hiring data", "REST")
 Rel(compliance, rp, "Lists and erases candidate profiles", "REST")
 Rel(compliance, complianceDb, "Reads/writes", "SQL")
 Rel(compliance, email, "Sends stale-position and retention notices", "SMTP")

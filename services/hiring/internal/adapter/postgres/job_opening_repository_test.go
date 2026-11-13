@@ -36,7 +36,7 @@ func newRepo(t *testing.T) *postgres.JobOpeningRepository {
 	if err := postgres.Migrate(ctx, pool); err != nil {
 		t.Fatalf("migrating: %v", err)
 	}
-	if _, err := pool.Exec(ctx, "TRUNCATE job_openings CASCADE"); err != nil {
+	if _, err := pool.Exec(ctx, "TRUNCATE job_openings, pipeline_outbox CASCADE"); err != nil {
 		t.Fatalf("truncating: %v", err)
 	}
 	return postgres.NewJobOpeningRepository(pool)

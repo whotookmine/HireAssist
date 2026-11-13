@@ -66,5 +66,5 @@ These are not on the broker, but they are part of the same contract.
 |---|---|---|---|
 | `GET /candidates` | Resume Processing | `200` | `listCandidateProfiles()`: the candidate register; `created_at` is the collection date |
 | `DELETE /candidates/{candidateId}` | Resume Processing | `200`, or `404` (nothing held) | `eraseCandidateProfile()` |
-| `DELETE /candidates/{candidateId}` | **Hiring: not built yet** | **`204` only** | `eraseHiringData()`: screening results, decisions, guides and the resume file. Only a 204 counts, because a Hiring without the route answers 404 too (ADR-016) |
+| `DELETE /candidates/{candidateId}` | Hiring | **`204` only** | `eraseHiringData()`: screening results, decisions, guides and the resume file. Only a 204 counts, because a Hiring without the route answers 404 too (ADR-016) |
 | `POST /internal/access-rejections` | Compliance; called by the gateway, for 403s only | `201` | `recordAuthorisationRejected()`: `{member_id, role, required_role, method, path, occurred_at}` |

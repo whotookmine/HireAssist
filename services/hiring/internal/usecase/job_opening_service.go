@@ -16,7 +16,9 @@ var ErrNotFound = errors.New("job opening not found")
 
 // JobOpeningRepository stores job openings. Implemented by an adapter.
 type JobOpeningRepository interface {
-	Save(ctx context.Context, opening *domain.JobOpening) error
+	// Save stores the opening, and the pipeline events that report the change, in one
+	// transaction (ADR-015).
+	Save(ctx context.Context, opening *domain.JobOpening, events ...domain.PipelineEvent) error
 	FindByID(ctx context.Context, id string) (*domain.JobOpening, error)
 	List(ctx context.Context) ([]domain.JobOpening, error)
 }
@@ -50,7 +52,7 @@ func (s *JobOpeningService) CreateJobOpening(ctx context.Context, draft domain.J
 	if err != nil {
 		return nil, err
 	}
-	if err := s.repo.Save(ctx, opening); err != nil {
+	if err := s.repo.Save(ctx, opening, domain.OpeningEvent(domain.EventOpeningOpened, opening, opening.OpenedAt)); err != nil {
 		return nil, fmt.Errorf("saving job opening: %w", err)
 	}
 	return opening, nil
@@ -69,26 +71,27 @@ func (s *JobOpeningService) ListJobOpenings(ctx context.Context) ([]domain.JobOp
 // ReviseScreeningCriteria replaces the criteria of an open or paused job opening. Resumes
 // already handed to screening keep the snapshot they were sent with.
 func (s *JobOpeningService) ReviseScreeningCriteria(ctx context.Context, id string, criteria []domain.Criterion) (*domain.JobOpening, error) {
-	return s.update(ctx, id, func(o *domain.JobOpening) error { return o.ReviseCriteria(criteria) })
+	return s.update(ctx, id, "", func(o *domain.JobOpening) error { return o.ReviseCriteria(criteria) })
 }
 
 // PauseOpening puts an open job opening on hold (FR-1.8).
 func (s *JobOpeningService) PauseOpening(ctx context.Context, id string) (*domain.JobOpening, error) {
-	return s.update(ctx, id, (*domain.JobOpening).Pause)
+	return s.update(ctx, id, domain.EventOpeningPaused, (*domain.JobOpening).Pause)
 }
 
 // ResumeOpening reopens a paused job opening (FR-1.8).
 func (s *JobOpeningService) ResumeOpening(ctx context.Context, id string) (*domain.JobOpening, error) {
-	return s.update(ctx, id, (*domain.JobOpening).Resume)
+	return s.update(ctx, id, domain.EventOpeningResumed, (*domain.JobOpening).Resume)
 }
 
 // CloseOpening closes a job opening with a recorded outcome (FR-1.8); closing is final (FR-1.9).
 func (s *JobOpeningService) CloseOpening(ctx context.Context, id string, outcome domain.Outcome) (*domain.JobOpening, error) {
-	return s.update(ctx, id, func(o *domain.JobOpening) error { return o.Close(outcome) })
+	return s.update(ctx, id, domain.EventOpeningClosed, func(o *domain.JobOpening) error { return o.Close(outcome) })
 }
 
-// update loads an opening, applies a domain change, and saves it only if the change was allowed.
-func (s *JobOpeningService) update(ctx context.Context, id string, change func(*domain.JobOpening) error) (*domain.JobOpening, error) {
+// update loads an opening, applies a domain change, and saves it only if the change was allowed,
+// with an event of the given type unless it is empty.
+func (s *JobOpeningService) update(ctx context.Context, id string, event domain.PipelineEventType, change func(*domain.JobOpening) error) (*domain.JobOpening, error) {
 	opening, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -96,7 +99,11 @@ func (s *JobOpeningService) update(ctx context.Context, id string, change func(*
 	if err := change(opening); err != nil {
 		return nil, err
 	}
-	if err := s.repo.Save(ctx, opening); err != nil {
+	var events []domain.PipelineEvent
+	if event != "" {
+		events = append(events, domain.OpeningEvent(event, opening, s.clock.Now()))
+	}
+	if err := s.repo.Save(ctx, opening, events...); err != nil {
 		return nil, fmt.Errorf("saving job opening: %w", err)
 	}
 	return opening, nil

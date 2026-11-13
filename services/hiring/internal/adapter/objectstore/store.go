@@ -56,6 +56,18 @@ func (s *Store) StoreResume(ctx context.Context, key string, content []byte) err
 	return nil
 }
 
+// DeleteResume removes a file. S3 answers success for a key that is not there, so removing
+// one twice is safe.
+func (s *Store) DeleteResume(ctx context.Context, key string) error {
+	if err := s.client.RemoveObject(ctx, s.bucket, key, minio.RemoveObjectOptions{}); err != nil {
+		if code := minio.ToErrorResponse(err).Code; code == "NoSuchBucket" {
+			return nil // no bucket, so no file
+		}
+		return fmt.Errorf("deleting %s: %w", key, err)
+	}
+	return nil
+}
+
 func (s *Store) ensureBucket(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -18,6 +18,7 @@ type ScreeningRepository struct {
 	batches map[string]domain.ScreeningBatch
 	order   []string
 	batchOf map[string]string // resume id → batch id
+	events  []domain.PipelineEvent
 }
 
 // NewScreeningRepository returns an empty repository.
@@ -26,12 +27,13 @@ func NewScreeningRepository() *ScreeningRepository {
 }
 
 // SaveBatch stores a new batch.
-func (r *ScreeningRepository) SaveBatch(_ context.Context, b *domain.ScreeningBatch) error {
+func (r *ScreeningRepository) SaveBatch(_ context.Context, b *domain.ScreeningBatch, events ...domain.PipelineEvent) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if _, exists := r.batches[b.ID]; exists {
 		return fmt.Errorf("screening batch %s already exists", b.ID)
 	}
+	r.events = append(r.events, events...)
 	r.batches[b.ID] = cloneBatch(*b)
 	r.order = append(r.order, b.ID)
 	for _, e := range b.Entries {
@@ -77,10 +79,58 @@ func (r *ScreeningRepository) ListBatches(_ context.Context, jobOpeningID string
 }
 
 // SaveEntry replaces the stored copy of one resume's entry.
-func (r *ScreeningRepository) SaveEntry(_ context.Context, e *domain.ScreeningEntry) error {
+func (r *ScreeningRepository) SaveEntry(_ context.Context, e *domain.ScreeningEntry, events ...domain.PipelineEvent) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.update(e.ResumeID, func(stored *domain.ScreeningEntry) { *stored = cloneEntry(*e) })
+	if err := r.update(e.ResumeID, func(stored *domain.ScreeningEntry) { *stored = cloneEntry(*e) }); err != nil {
+		return err
+	}
+	r.events = append(r.events, events...)
+	return nil
+}
+
+// PipelineEvents returns the events saved so far, for tests to read.
+func (r *ScreeningRepository) PipelineEvents() []domain.PipelineEvent {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return slices.Clone(r.events)
+}
+
+// ResumeKeysOfCandidate returns the object keys of the resumes screened as the candidate's.
+func (r *ScreeningRepository) ResumeKeysOfCandidate(_ context.Context, candidateID string) ([]string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	keys := []string{}
+	for _, b := range r.batches {
+		for _, e := range b.Entries {
+			if e.Result != nil && e.Result.CandidateID == candidateID {
+				keys = append(keys, e.ObjectKey)
+			}
+		}
+	}
+	return keys, nil
+}
+
+// EraseCandidate deletes the candidate's resume entries and the candidate id from saved events.
+func (r *ScreeningRepository) EraseCandidate(_ context.Context, candidateID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for id, b := range r.batches {
+		b.Entries = slices.DeleteFunc(b.Entries, func(e domain.ScreeningEntry) bool {
+			if e.Result != nil && e.Result.CandidateID == candidateID {
+				delete(r.batchOf, e.ResumeID)
+				return true
+			}
+			return false
+		})
+		r.batches[id] = b
+	}
+	for i := range r.events {
+		if r.events[i].CandidateID == candidateID {
+			r.events[i].CandidateID = ""
+		}
+	}
+	return nil
 }
 
 // Unrequested returns copies of the batches holding resumes not yet requested, oldest first,

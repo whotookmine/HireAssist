@@ -27,6 +27,14 @@ func (s *ResumeStore) StoreResume(_ context.Context, key string, content []byte)
 }
 
 // Resume returns the file stored under key.
+// DeleteResume removes a file; one that is not there is already removed.
+func (s *ResumeStore) DeleteResume(_ context.Context, key string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.files, key)
+	return nil
+}
+
 func (s *ResumeStore) Resume(key string) ([]byte, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

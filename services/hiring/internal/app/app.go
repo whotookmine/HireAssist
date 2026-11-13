@@ -77,7 +77,7 @@ func New(ctx context.Context, cfg Config) (http.Handler, func(), error) {
 		return nil, nil, err
 	}
 
-	openingRepo, screeningRepo, closeDB, err := repositories(ctx, cfg.DatabaseURL)
+	openingRepo, screeningRepo, outbox, closeDB, err := repositories(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -140,8 +140,16 @@ func New(ctx context.Context, cfg Config) (http.Handler, func(), error) {
 		background, stop := context.WithCancel(ctx)
 		var wg sync.WaitGroup
 		wg.Go(func() { broker.Run(background, screening) })
-		wg.Go(func() { relay(background, screening, cmp.Or(cfg.RelayInterval, 5*time.Second)) })
+		every := cmp.Or(cfg.RelayInterval, 5*time.Second)
+		wg.Go(func() { relay(background, "screening requests", screening.PublishPendingRequests, every) })
+		if outbox != nil {
+			events := &usecase.PipelineRelay{Outbox: outbox, Publisher: broker, Clock: clock}
+			wg.Go(func() { relay(background, "pipeline events", events.PublishPending, every) })
+		}
 		closers = append(closers, func() { stop(); wg.Wait() })
+	}
+	if outbox == nil || broker == nil {
+		slog.Warn("pipeline events are not published: they need both DATABASE_URL and RABBITMQ_URL")
 	}
 
 	return httpapi.NewHandler(httpapi.Services{
@@ -149,28 +157,30 @@ func New(ctx context.Context, cfg Config) (http.Handler, func(), error) {
 		Proposals:       usecase.NewProposalService(deriver),
 		Screening:       screening,
 		InterviewGuides: usecase.NewInterviewGuideService(guideRepo, openingRepo, profiles, questions, clock, system.IDs{Prefix: "ig_"}),
+		Erasure:         &usecase.CandidateErasure{Batches: screeningRepo, Files: files, Guides: guideRepo},
 	}), release, nil
 }
 
-// repositories returns the PostgreSQL repositories when a database is configured — connected,
-// checked and migrated — or in-memory ones when it is not, and what releases them.
-func repositories(ctx context.Context, url string) (usecase.JobOpeningRepository, usecase.ScreeningRepository, func(), error) {
+// repositories returns the PostgreSQL repositories and pipeline outbox when a database is
+// configured — connected, checked and migrated — or in-memory repositories and no outbox when it
+// is not, and what releases them. In memory, pipeline events are kept but never published.
+func repositories(ctx context.Context, url string) (usecase.JobOpeningRepository, usecase.ScreeningRepository, usecase.PipelineOutbox, func(), error) {
 	if url == "" {
-		return memory.NewJobOpeningRepository(), memory.NewScreeningRepository(), func() { /* nothing to release */ }, nil
+		return memory.NewJobOpeningRepository(), memory.NewScreeningRepository(), nil, func() { /* nothing to release */ }, nil
 	}
 	pool, err := pgxpool.New(ctx, url)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("configuring database: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("configuring database: %w", err)
 	}
 	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
-		return nil, nil, nil, fmt.Errorf("connecting to database: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("connecting to database: %w", err)
 	}
 	if err := postgres.Migrate(ctx, pool); err != nil {
 		pool.Close()
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
-	return postgres.NewJobOpeningRepository(pool), postgres.NewScreeningRepository(pool), pool.Close, nil
+	return postgres.NewJobOpeningRepository(pool), postgres.NewScreeningRepository(pool), postgres.NewPipelineOutbox(pool), pool.Close, nil
 }
 
 // resumeStore returns object storage when it is configured, and memory when it is not.
@@ -185,9 +195,9 @@ func resumeStore(cfg objectstore.Config) (usecase.ResumeStore, error) {
 	return store, nil
 }
 
-// relay sends, on a timer, the screening requests the broker could not take when their batch
-// was submitted — the other half of the outbox. It reports a failure once, not on every tick.
-func relay(ctx context.Context, svc *usecase.ScreeningService, every time.Duration) {
+// relay runs one outbox pass on a timer — the held-back screening requests, or the pipeline
+// events — and reports a failure once, not on every tick.
+func relay(ctx context.Context, what string, pass func(context.Context) (int, error), every time.Duration) {
 	ticker := time.NewTicker(every)
 	defer ticker.Stop()
 	lastErr := ""
@@ -197,13 +207,13 @@ func relay(ctx context.Context, svc *usecase.ScreeningService, every time.Durati
 			return
 		case <-ticker.C:
 		}
-		sent, err := svc.PublishPendingRequests(ctx)
+		sent, err := pass(ctx)
 		if sent > 0 {
-			slog.Info("held-back screening requests sent", "count", sent)
+			slog.Info(what+" sent", "count", sent)
 		}
 		switch {
 		case err != nil && ctx.Err() == nil && err.Error() != lastErr:
-			slog.Warn("screening requests held back; retrying", "err", err)
+			slog.Warn(what+" held back; retrying", "err", err)
 			lastErr = err.Error()
 		case err == nil:
 			lastErr = ""

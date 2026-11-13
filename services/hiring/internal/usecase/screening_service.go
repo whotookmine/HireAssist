@@ -36,8 +36,9 @@ const (
 
 // ScreeningRepository stores screening batches. Implemented by an adapter.
 type ScreeningRepository interface {
-	// SaveBatch stores a new batch: its criteria snapshot and its entries.
-	SaveBatch(ctx context.Context, b *domain.ScreeningBatch) error
+	// SaveBatch stores a new batch: its criteria snapshot and its entries, with the pipeline
+	// events reporting it, in one transaction (ADR-015).
+	SaveBatch(ctx context.Context, b *domain.ScreeningBatch, events ...domain.PipelineEvent) error
 	// FindBatch returns a batch with every entry, or ErrBatchNotFound.
 	FindBatch(ctx context.Context, id string) (*domain.ScreeningBatch, error)
 	// FindBatchOfResume returns the batch a resume belongs to, or ErrResumeNotFound.
@@ -45,18 +46,27 @@ type ScreeningRepository interface {
 	// ListBatches returns a job opening's batches in submission order.
 	ListBatches(ctx context.Context, jobOpeningID string) ([]domain.ScreeningBatch, error)
 	// SaveEntry stores what has changed about one resume: its status and result, the
-	// Recruiter's override and shortlist.
-	SaveEntry(ctx context.Context, e *domain.ScreeningEntry) error
+	// Recruiter's override and shortlist — with the pipeline events reporting it, in one
+	// transaction.
+	SaveEntry(ctx context.Context, e *domain.ScreeningEntry, events ...domain.PipelineEvent) error
 	// Unrequested returns, oldest first, batches holding resumes whose screening request has not
 	// been sent — each batch carrying only those entries, at most limit in all.
 	Unrequested(ctx context.Context, limit int) ([]domain.ScreeningBatch, error)
 	// MarkRequested records that the broker confirmed a resume's screening request.
 	MarkRequested(ctx context.Context, resumeID string, at time.Time) error
+	// ResumeKeysOfCandidate returns the object keys of every resume screened as the candidate's.
+	ResumeKeysOfCandidate(ctx context.Context, candidateID string) ([]string, error)
+	// EraseCandidate deletes every resume entry screened as the candidate's — score, result,
+	// override, shortlist — and the candidate id from any pipeline event still held. Erasing
+	// a candidate with nothing held succeeds.
+	EraseCandidate(ctx context.Context, candidateID string) error
 }
 
 // ResumeStore keeps uploaded resume files in object storage (ADR-003). Implemented by an adapter.
 type ResumeStore interface {
 	StoreResume(ctx context.Context, key string, content []byte) error
+	// DeleteResume removes a file; removing one that is not there succeeds.
+	DeleteResume(ctx context.Context, key string) error
 }
 
 // ScreeningRequester hands one resume to Resume Processing to be screened, by publishing a
@@ -170,7 +180,11 @@ func (s *ScreeningService) SubmitScreeningBatch(ctx context.Context, openingID s
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := s.deps.Batches.SaveBatch(ctx, batch); err != nil {
+	events := make([]domain.PipelineEvent, len(batch.Entries))
+	for i := range batch.Entries {
+		events[i] = domain.ResumeEvent(domain.EventResumeSubmitted, opening.ID, &batch.Entries[i], batch.SubmittedAt)
+	}
+	if err := s.deps.Batches.SaveBatch(ctx, batch, events...); err != nil {
 		return nil, nil, fmt.Errorf("saving screening batch: %w", err)
 	}
 	// The batch is accepted once it is saved. Sending the requests can fail without losing it:
@@ -228,7 +242,12 @@ func (s *ScreeningService) RecordScreeningResult(ctx context.Context, batchID, r
 	if err := b.RecordResult(resumeID, status, r); err != nil {
 		return err
 	}
-	if err := s.deps.Batches.SaveEntry(ctx, b.Entry(resumeID)); err != nil {
+	e := b.Entry(resumeID)
+	var events []domain.PipelineEvent
+	if status == domain.EntryScreened { // only a scored resume counts as screened (UC-4)
+		events = append(events, domain.ResumeEvent(domain.EventResumeScreened, b.JobOpeningID, e, r.CompletedAt))
+	}
+	if err := s.deps.Batches.SaveEntry(ctx, e, events...); err != nil {
 		return fmt.Errorf("saving the result of %s: %w", resumeID, err)
 	}
 	return nil
@@ -298,7 +317,7 @@ func (s *ScreeningService) GetScreeningResult(ctx context.Context, openingID, re
 // OverrideScore replaces a screened resume's score with the Recruiter's, keeping the original
 // beside it (overrideScore(), FR-2.8, UC-2 flow 6a).
 func (s *ScreeningService) OverrideScore(ctx context.Context, openingID, resumeID string, score int) (*domain.Ranked, error) {
-	return s.decide(ctx, openingID, resumeID, func(e *domain.ScreeningEntry) error {
+	return s.decide(ctx, openingID, resumeID, "", func(e *domain.ScreeningEntry) error {
 		return e.OverrideScore(score, s.deps.Clock.Now())
 	})
 }
@@ -306,13 +325,14 @@ func (s *ScreeningService) OverrideScore(ctx context.Context, openingID, resumeI
 // ShortlistCandidate marks a screened candidate as worth interviewing (shortlistCandidate(),
 // FR-2.9).
 func (s *ScreeningService) ShortlistCandidate(ctx context.Context, openingID, resumeID string) (*domain.Ranked, error) {
-	return s.decide(ctx, openingID, resumeID, func(e *domain.ScreeningEntry) error {
+	return s.decide(ctx, openingID, resumeID, domain.EventCandidateShortlisted, func(e *domain.ScreeningEntry) error {
 		return e.Shortlist(s.deps.Clock.Now())
 	})
 }
 
-// decide applies a Recruiter's decision to one resume and saves it only if it was allowed.
-func (s *ScreeningService) decide(ctx context.Context, openingID, resumeID string, decision func(*domain.ScreeningEntry) error) (*domain.Ranked, error) {
+// decide applies a Recruiter's decision to one resume and saves it only if it was allowed, with
+// an event of the given type unless it is empty.
+func (s *ScreeningService) decide(ctx context.Context, openingID, resumeID string, event domain.PipelineEventType, decision func(*domain.ScreeningEntry) error) (*domain.Ranked, error) {
 	b, e, err := s.entry(ctx, openingID, resumeID)
 	if err != nil {
 		return nil, err
@@ -320,7 +340,11 @@ func (s *ScreeningService) decide(ctx context.Context, openingID, resumeID strin
 	if err := decision(e); err != nil {
 		return nil, err
 	}
-	if err := s.deps.Batches.SaveEntry(ctx, e); err != nil {
+	var events []domain.PipelineEvent
+	if event != "" {
+		events = append(events, domain.ResumeEvent(event, b.JobOpeningID, e, s.deps.Clock.Now()))
+	}
+	if err := s.deps.Batches.SaveEntry(ctx, e, events...); err != nil {
 		return nil, fmt.Errorf("saving resume %s: %w", resumeID, err)
 	}
 	return &domain.Ranked{Batch: b, Entry: e}, nil

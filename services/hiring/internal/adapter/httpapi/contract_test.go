@@ -101,6 +101,8 @@ func TestHandlerMatchesOpenAPIContract(t *testing.T) {
 		{name: "close", method: "POST", path: "/job-openings/jo-1/close", body: `{"outcome": "filled"}`, wantStatus: 200},
 		{name: "revise criteria, closed", method: "PUT", path: "/job-openings/jo-1/criteria", body: `[{"name": "Go", "classification": "must-have", "weight": 3}]`, wantStatus: 409},
 		{name: "resume, unknown", method: "POST", path: "/job-openings/jo-404/resume", wantStatus: 404},
+		{name: "erase a candidate", method: "DELETE", path: "/candidates/cand-1", wantStatus: 204},
+		{name: "erase a candidate, again", method: "DELETE", path: "/candidates/cand-1", wantStatus: 204},
 		{name: "health", method: "GET", path: "/healthz", wantStatus: 200},
 	}
 
