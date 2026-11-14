@@ -15,6 +15,15 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-11-14 15:35 — Risk R2 narrowed now that Compliance & Insights has manifests
+
+- **R2 loses a cause but keeps its score.** The 00:10 entry said Compliance & Insights, its
+  database and Mailpit had no manifest; the 14:00 entry gave the first two one and keeps Mailpit
+  out of the cluster by design. `RISK-MATRIX.md` and `CONTEXT.md` now say every workload has a
+  manifest. The score stays 216, because its driver is unchanged: the manifests have never been
+  applied together.
+- Outstanding: the cluster has still not been run end to end.
+
 ## 2026-11-14 14:00 — Compliance & Insights on Kubernetes
 
 - **The cluster now runs Compliance & Insights** behind `compliance.hireassist.svc:8083`, with

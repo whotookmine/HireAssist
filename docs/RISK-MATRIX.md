@@ -21,7 +21,7 @@ than judgement — R1 from the Scalability test, R6 and R7 from the stress test,
 | ID | Failure mode | Effect | Cause | S | O | D | RPN |
 |---|---|---|---|---|---|---|---|
 | **R1** | Adding Resume Processing replicas stops raising screening throughput | A large batch takes longer than NFR-06 allows; the extra replicas are paid for and idle | The AI Service runs one replica with a fixed pool of 10 worker threads, so at most 10 model calls run at once however many workers wait (ADR-007, ADR-014) | 6 | 8 | 5 | **240** |
-| **R2** | The Kubernetes manifests fail on their first real deployment | Discovery and health checking, designed in ADR-014, do not work when the system goes live; release slips | The system has only ever run under Docker Compose; eleven workloads have manifests, but the Compliance & Insights Service, its database and Mailpit, added since, have none; the first kind cluster ran out of disk | 6 | 6 | 6 | **216** |
+| **R2** | The Kubernetes manifests fail on their first real deployment | Discovery and health checking, designed in ADR-014, do not work when the system goes live; release slips | The system has only ever run under Docker Compose; the manifests for its thirteen workloads have never been applied together; the first kind cluster ran out of disk | 6 | 6 | 6 | **216** |
 | **R3** | Candidate data outlives its consent or an erasure request | A PDPA breach: legal penalty and lost customer trust | Copies of a candidate live in five places — Hiring's PostgreSQL and MongoDB, Resume Processing's MongoDB, MinIO, and the model provider | 9 | 3 | 7 | **189** |
 | **R4** | The model provider is down or throttles us mid-batch | No scores while it lasts; past the retry budget, resumes land in *needs manual review* | One hosted provider, with no automatic fallback (ADR-004) | 7 | 4 | 3 | **84** |
 | **R5** | A screening message is lost, or processed twice | Lost: a candidate is never screened and the batch never completes. Twice: the model is paid twice | RabbitMQ sits on the screening path and delivers at least once (ADR-013) | 7 | 3 | 4 | **84** |
@@ -41,12 +41,12 @@ queue depth. Running the AI Service as several replicas would need gRPC balancin
 a proxy, because Kubernetes balances per connection (ADR-014).
 
 **R2 — the cluster has never run (RPN 216).** *Severity 6*: the design does not fail, its
-deployment does, and the Compose stack keeps working. *Occurrence 6*: eleven workloads' manifests
-have never been applied together, three newer workloads have none, and a first run usually finds
-something. *Detection 6*: nothing
-checks them until someone deploys. **Mitigation:** write the missing manifests, then run
-`deploy/k8s/up.sh` on a one-node kind cluster before any release, with enough free disk; both platforms already run the same images
-with the same variables, which narrows what can differ.
+deployment does, and the Compose stack keeps working. *Occurrence 6*: the thirteen workloads'
+manifests have never been applied together — two of them were only written on 14 November — and
+a first run usually finds something. *Detection 6*: nothing checks them until someone deploys.
+**Mitigation:** run `deploy/k8s/up.sh` on a one-node kind cluster before any release, with enough
+free disk; both platforms already run the same images with the same variables, which narrows what
+can differ.
 
 **R3 — personal data outlives its purpose (RPN 189).** *Severity 9*: PDPA is the design force
 the proposal puts first. *Occurrence 3*: erasure and retention are implemented, not planned.
