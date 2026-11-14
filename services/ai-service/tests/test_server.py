@@ -106,6 +106,22 @@ def test_canned_answers_are_labelled_as_canned():
     assert "no-model-was-called" in answer.model
 
 
+def test_the_canned_provider_can_stand_in_for_a_models_response_time(monkeypatch):
+    """A load test sets a latency so that a worker is held as long as a real
+    call would hold it; the demo, which sets none, must not wait at all."""
+    from ai_service.providers import canned
+
+    slept = []
+    monkeypatch.setattr(canned.time, "sleep", slept.append)
+    ask = dict(system="", user="", schema={}, schema_name="interview_questions", schema_description="")
+
+    canned.CannedProvider(Settings(provider="canned", canned_latency_s=6)).json_answer(**ask)
+    canned.CannedProvider(Settings(provider="canned")).json_answer(**ask)
+    canned.CannedProvider().json_answer(**ask)
+
+    assert slept == [6]
+
+
 def test_canned_evidence_quotes_the_criterion_it_was_given():
     """The parser must read the criterion text out of the rendered prompt; a
     silent mismatch would make every canned answer generic."""

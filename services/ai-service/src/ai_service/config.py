@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     provider: str = DEFAULT_PROVIDER
     # Empty means the provider's default model, from DEFAULT_MODELS.
     model: str = ""
+    # Seconds the canned provider waits before answering, to stand in for a
+    # model's response time under a load test without paying for one or
+    # hitting its rate limit. 0, the default, answers at once, as a demo wants.
+    canned_latency_s: float = 0.0
     # Overrides the built-in prompts.PROMPT_VERSION. Set it only when running
     # prompts that did not ship with this build; otherwise attribution lies.
     prompt_version: str | None = None
