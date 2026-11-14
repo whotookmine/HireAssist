@@ -13,6 +13,7 @@ the thing a demo is trying to show.
 """
 
 import re
+import time
 from typing import Any
 
 from ai_service.config import Settings
@@ -46,6 +47,11 @@ class CannedProvider:
             "criterion_assessments": self._assessments,
             "interview_questions": self._questions,
         }[schema_name]
+        # A load test needs the time a model takes, not its answer: holding the
+        # worker thread for that long is what makes the queue and the replica
+        # count matter (AI_SERVICE_CANNED_LATENCY_S).
+        if self.settings is not None and self.settings.canned_latency_s > 0:
+            time.sleep(self.settings.canned_latency_s)
         return ProviderAnswer(data=builder(user), model=MODEL)
 
     def _parsed(self, user: str) -> list[tuple[str, bool, str]]:

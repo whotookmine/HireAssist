@@ -20,8 +20,12 @@ Assumptions currently stated in the proposal that we have not verified:
 - [ ] Which resume formats must we parse — PDF, DOCX, scanned images? Thai + English mix?
 - [ ] Typical expected time-to-fill, to make UC-4's staleness thresholds realistic.
 - [ ] Realistic default retention period for UC-5 (6 / 12 / 24 months?).
-- [ ] All NFR figures are estimates — validate against measured load-test results and revise.
-- [ ] Model-provider rate limits may cap concurrency before worker count does (risk matrix item).
+- [ ] NFR figures are validated only under a simulated model on one laptop: the 2026-11-13 load
+      tests (LOAD-TEST.md) met NFR-03, -04, -06 and -08 at the design load, and NFR-07 only once
+      the AI Service's thread pool was raised. Still unmeasured: a real provider, and NFR-03 at
+      1,000 candidates (the test reached 244).
+- [ ] A real model provider's rate limit — the next ceiling on screening throughput after the AI
+      Service's pool (RISK-MATRIX.md, R1 and R4) — has not been measured.
 
 Raised by the ADRs recorded on 2026-09-11, and load-bearing for them:
 
@@ -35,8 +39,9 @@ Raised by the ADRs recorded on 2026-09-11, and load-bearing for them:
 - [ ] **Do recruiters accept a batch that fills in progressively?** ADR-002's whole interaction
       model assumes yes, provided progress is visible. Untested.
 - [ ] **Does the whole system run on a Kubernetes cluster?** ADR-001's service discovery depends
-      on it. ADR-014 wrote a manifest for every workload and a script to run them on a local kind
-      cluster, but they have not yet run end to end — the first attempt filled the laptop's disk.
+      on it. Every service and datastore now has a manifest — Compliance & Insights and its
+      database since 2026-11-14 — and a script runs them on a local kind cluster, but they have
+      not yet run end to end; the first attempt filled the laptop's disk (RISK-MATRIX.md, R2).
       Until they do, the discovery the documents describe is designed, not demonstrated.
 
 ---

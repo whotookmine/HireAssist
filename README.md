@@ -44,6 +44,9 @@ Term project for **Software Architecture**, Chulalongkorn University.
 | [proto/](proto/) | Shared gRPC contracts. Callers generate clients from these. |
 | [services/compliance/](services/compliance/) | **Code.** The Compliance & Insights Service — Go, PostgreSQL, a RabbitMQ consumer. Retention policy, sweeps and orchestrated erasure (UC-5), the pipeline dashboard and stale-position flags (UC-4), the access audit log. Reached through the gateway; fed by Hiring's pipeline events, and erases through Hiring and Resume Processing. |
 | [services/web/](services/web/) | **Code.** The HireAssist Web UI — React, TypeScript, Mantine. Sign-in and UC-1 to UC-6, against the gateway or on a mock backend in the browser. |
+| [docs/LOAD-TEST.md](docs/LOAD-TEST.md) | Load test results: an average-load and a stress test of the API, and the Scalability measurement — method, numbers and what they mean. |
+| [docs/RISK-MATRIX.md](docs/RISK-MATRIX.md) | The architecture's main risks, scored with FMEA (severity, occurrence, detection) and ranked by RPN, each with its mitigation. |
+| [loadtest/](loadtest/) | **Code.** The k6 load tests and the Compose override they run against. |
 | [docs/OVERVIEW.md](docs/OVERVIEW.md) | Runtime view — what each service owns, who calls whom, and the call sequence behind each use case. |
 | `docs/build-proposal-docx.py`, `docs/adr/build-docx.py` | Build the two Word deliverables. The documents themselves are generated, not committed. |
 | [docs/CONTEXT.md](docs/CONTEXT.md) | Internal working notes — open questions, open decisions, glossary. Not for submission. |
@@ -113,6 +116,7 @@ hire-assist/
 ├── docker-compose.yml       # local stack: every service, datastore and the broker
 ├── deploy/                  # container support files (database init, development signing keys)
 │   └── k8s/                 # Kubernetes manifests, and the scripts that run them on kind
+├── loadtest/                # k6 load tests (average load, stress, scalability)
 ├── proto/                   # shared gRPC contracts
 ├── services/
 │   ├── ai-service/          # AI Service (Python, gRPC)

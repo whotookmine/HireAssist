@@ -20,8 +20,11 @@ at a time. The ten-minute target in NFR-06 can only be reached through concurren
 an independent unit of work (ADR-002) carried as one message on `screening.requested` (ADR-013).
 RabbitMQ shares those messages across every Resume Processing replica, each of which holds at most
 four in flight. Throughput therefore grows with the replica count. In Kubernetes that is one number
-in the Deployment, and it needs no code change. The practical ceiling is the model provider's rate
-limit, not the design.
+in the Deployment, and it needs no code change. The load test (LOAD-TEST.md) measured this — 1.91
+times the throughput at two replicas — and found the first ceiling inside the system, not at the
+provider: the AI Service answers on a pool of 10 threads, so four replicas reached only 59% of
+linear until the pool was raised to 32, when they reached 89%. The pool must cover replicas × 4.
+Past it, the ceiling is the model provider's rate limit.
 
 ## Reliability (NFR-10)
 
@@ -43,6 +46,10 @@ guarantee:
 The fault-injection demonstration stops the AI Service in the middle of a batch. The affected
 resumes retry and are dead-lettered. After the service is restarted and the dead-letter queue is
 replayed, every resume is scored and none is lost.
+
+Run on 2026-11-13 (LOAD-TEST.md), a 20-second stop left 8 of 40 resumes dead-lettered — visibly
+failed, none lost — with the default three retries, and none with five: the three-retry budget,
+about 35 seconds, is shorter than a short outage as the caller sees it.
 
 ## Performance (NFR-01, NFR-02, NFR-04)
 

@@ -15,6 +15,15 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-11-14 15:35 — Risk R2 narrowed now that Compliance & Insights has manifests
+
+- **R2 loses a cause but keeps its score.** The 00:10 entry said Compliance & Insights, its
+  database and Mailpit had no manifest; the 14:00 entry gave the first two one and keeps Mailpit
+  out of the cluster by design. `RISK-MATRIX.md` and `CONTEXT.md` now say every workload has a
+  manifest. The score stays 216, because its driver is unchanged: the manifests have never been
+  applied together.
+- Outstanding: the cluster has still not been run end to end.
+
 ## 2026-11-14 14:00 — Compliance & Insights on Kubernetes
 
 - **The cluster now runs Compliance & Insights** behind `compliance.hireassist.svc:8083`, with
@@ -25,6 +34,28 @@ what a session decided, and rewriting it destroys the record of when and why som
   twice. Running more than one would need a lock or a leader first.
 - No mail server runs in the cluster, so there notices are logged, not sent.
 - Outstanding: the cluster has still not been run end to end.
+
+## 2026-11-14 00:10 — Load tests run, risk matrix written, final-presentation guideline recorded
+
+- **The syllabus revised on 2026-11-04 is recorded** in `course/ASSIGNMENT.md` and
+  `REQUIREMENTS.md`: slides are the only deliverable, with C4 levels 1–2, a sequence diagram, a
+  deployment overview, a risk matrix of at least 3 issues and a measurable quality attribute.
+- **Three k6 load tests were run** (`loadtest/`), written up in `LOAD-TEST.md`: average load at 20
+  recruiters, stress to 200, and the Scalability measurement. The model was simulated at 12 seconds
+  a resume, so the numbers measure our architecture, not a provider's rate limit.
+- **Scalability holds only if the AI Service's thread pool covers the screening concurrency.** At
+  four replicas the default pool of 10 gave 59% of linear throughput; a pool of 32 gave 89%.
+  `NFR-ARCHITECTURE.md` no longer says the provider's rate limit is the first ceiling.
+- **Stress found the first target to break**: uploads (NFR-04) at 200 recruiters, because each
+  upload publishes the outbox inline under one lock in Hiring. No request failed in 53,242.
+- **Fault injection**: three retries are too few to ride out a 20-second AI Service outage, while
+  five were enough. Nothing was lost silently in either run.
+- **Risk matrix written** (`RISK-MATRIX.md`) in the course's FMEA form: seven risks ranked by RPN,
+  three of them scored from measurements.
+- **The Compliance & Insights Service, its database and Mailpit have no Kubernetes manifest**;
+  `CONTEXT.md` no longer says every workload has one. It is part of risk R2.
+- Outstanding: a real provider's rate limit and NFR-03 at 1,000 candidates are unmeasured; the
+  cluster has still not run (R2); Part 1's sequence diagram and deployment overview are not drawn.
 
 ## 2026-11-13 21:15 — The MinIO record renumbered to ADR-018
 

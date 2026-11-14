@@ -20,5 +20,11 @@
 
 ### Testing & analysis
 - [ ] Load test — at least 2 types, with explanation of results
-- [ ] Risk Matrix — conducted and explained
-- [ ] Demonstrate at least 1 SW quality/measurement issue (e.g. Scalability, Reusability, Maintainability, Security)
+- [ ] Risk Matrix — conducted and explained, at least 3 issues (syllabus revised 2026-11-04)
+- [ ] Demonstrate at least 1 SW quality/measurement issue (e.g. Scalability, Reusability, Maintainability, Security);
+      the 2026-11-04 presentation guideline asks for one *measurable* quality attribute, such as
+      Scalability, Resilience, Performance or Observability
+
+The syllabus revised on 2026-11-04 adds how these are presented: slides as the only deliverable,
+C4 levels 1 and 2, a sequence diagram, a deployment overview and a live demo. See
+[ASSIGNMENT.md](ASSIGNMENT.md#final-presentation--the-term-project).
