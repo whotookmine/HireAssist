@@ -166,3 +166,57 @@ Invitation Email` was removed once it turned out no use case or requirement desc
   the brief asks for a description, and the first attempt filled the laptop's disk — so it shows
   the diagram and the YAML instead. The architecture page gains a service-discovery section and
   diagram.
+
+---
+
+## Final presentation — the term project
+
+From the course syllabus as revised on 2026-11-04, which adds presentation and submission
+guidelines to the minimum requirements in [REQUIREMENTS.md](REQUIREMENTS.md). Presentations are
+in week 15, on Wednesday 11 and Sunday 15 November 2026.
+
+> **Format.** Each group has 20 minutes: 15 for the presentation and a live demonstration, 5 for
+> questions. Presentations are recorded on Zoom for the instructors to review. Groups arrive 15–20
+> minutes early and may be asked to start ahead of schedule.
+>
+> **Report.** No separate written report is required. The presentation slides are the final
+> deliverable and must contain all the required content; diagrams must be explained during the
+> presentation.
+>
+> **Part 1 — System Architecture Overview**, described with the C4 model:
+>
+> - Architecture goals and constraints, and the key design decisions
+> - Level 1, System Context (required): users, external systems and their interactions
+> - Level 2, Container (required): microservices, databases and communication mechanisms
+> - Level 3, Component (optional): one microservice's internals, if it matters to a key decision
+> - Level 4, Code (not required)
+> - A sequence diagram (required) of the interactions between services for one representative
+>   business scenario
+> - A deployment overview (required): how the system is deployed and how its services connect
+>
+> **Part 2 — Implementation & Demonstration:**
+>
+> - At least 3 business use cases and authentication
+> - A live demo of the front-end UI — no recorded video
+> - At least one REST API, one gRPC service, one message-broker-based service and an API gateway
+> - The service discovery mechanism
+> - At least two types of database: one relational, one NoSQL
+> - A load test, with its results interpreted
+> - A risk matrix of at least 3 issues, conducted and explained
+> - One measurable quality attribute, such as scalability, resilience, performance or
+>   observability
+
+**What this means for us** (2026-11-13):
+
+- Service discovery, the load test, the risk matrix and the measured quality attribute form one
+  member's section of the presentation.
+- **The load test is run, not planned.** `loadtest/` holds three k6 tests, run through the gateway
+  against the whole Compose stack: an average-load test at the design load of 20 recruiters, a
+  stress test to 200, and the Scalability measurement — a burst of 100 resumes at 1, 2 and 4 Resume
+  Processing replicas. The syllabus still asks elsewhere for load tests of at least two types; the
+  first two are those. The results are written up in [LOAD-TEST.md](../LOAD-TEST.md).
+- **The quality attribute stays Scalability**, now in the syllabus's own list, and is presented
+  with the throughput the third test measured.
+- **The risk matrix uses the FMEA form taught in the course**: failure mode, effect and cause,
+  each scored for severity, occurrence and detection from 1 to 10, ranked by RPN = S × O × D. It
+  is in [RISK-MATRIX.md](../RISK-MATRIX.md).

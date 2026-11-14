@@ -15,6 +15,28 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-11-14 00:10 — Load tests run, risk matrix written, final-presentation guideline recorded
+
+- **The syllabus revised on 2026-11-04 is recorded** in `course/ASSIGNMENT.md` and
+  `REQUIREMENTS.md`: slides are the only deliverable, with C4 levels 1–2, a sequence diagram, a
+  deployment overview, a risk matrix of at least 3 issues and a measurable quality attribute.
+- **Three k6 load tests were run** (`loadtest/`), written up in `LOAD-TEST.md`: average load at 20
+  recruiters, stress to 200, and the Scalability measurement. The model was simulated at 12 seconds
+  a resume, so the numbers measure our architecture, not a provider's rate limit.
+- **Scalability holds only if the AI Service's thread pool covers the screening concurrency.** At
+  four replicas the default pool of 10 gave 59% of linear throughput; a pool of 32 gave 89%.
+  `NFR-ARCHITECTURE.md` no longer says the provider's rate limit is the first ceiling.
+- **Stress found the first target to break**: uploads (NFR-04) at 200 recruiters, because each
+  upload publishes the outbox inline under one lock in Hiring. No request failed in 53,242.
+- **Fault injection**: three retries are too few to ride out a 20-second AI Service outage, while
+  five were enough. Nothing was lost silently in either run.
+- **Risk matrix written** (`RISK-MATRIX.md`) in the course's FMEA form: seven risks ranked by RPN,
+  three of them scored from measurements.
+- **The Compliance & Insights Service, its database and Mailpit have no Kubernetes manifest**;
+  `CONTEXT.md` no longer says every workload has one. It is part of risk R2.
+- Outstanding: a real provider's rate limit and NFR-03 at 1,000 candidates are unmeasured; the
+  cluster has still not run (R2); Part 1's sequence diagram and deployment overview are not drawn.
+
 ## 2026-11-13 21:15 — The MinIO record renumbered to ADR-018
 
 - **Two records had been numbered ADR-014**: service discovery on Kubernetes (dated 2026-10-31)
