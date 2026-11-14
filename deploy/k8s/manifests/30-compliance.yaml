@@ -1,0 +1,66 @@
+# The Compliance & Insights Service: REST on 8083, reached by the gateway as
+# compliance.hireassist.svc:8083 (UC-4, UC-5).
+#
+# It consumes pipeline.events from the broker (ADR-015) and calls Hiring and Resume Processing by
+# Service name to erase a candidate (ADR-016). Connection strings that carry a password come from
+# the compliance Secret that up.sh creates. Its readiness probe passes only when its database and
+# the broker are both connected.
+#
+# One replica, deliberately: the retention and staleness sweeps run inside the process, so a
+# second Pod would sweep twice and send every notice twice.
+#
+# No mail server runs in this cluster, so SMTP_ADDR is unset and notices are logged instead of
+# sent; point it at an Email Provider to send them.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: compliance
+  namespace: hireassist
+  labels: { app: compliance }
+spec:
+  replicas: 1
+  strategy: { type: Recreate } # never two sweepers, even during a rollout
+  selector:
+    matchLabels: { app: compliance }
+  template:
+    metadata:
+      labels: { app: compliance, tier: service }
+    spec:
+      containers:
+        - name: compliance
+          image: hireassist/compliance:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+          env:
+            - { name: PORT, value: "8083" }
+            - { name: HIRING_URL, value: "http://hiring.hireassist.svc:8080" }
+            - { name: RESUME_PROCESSING_URL, value: "http://resume-processing.hireassist.svc" }
+            - { name: NOTIFY_FALLBACK_TO, value: somchai@acme.example }
+            - { name: SWEEP_INTERVAL, value: 1h }
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: compliance, key: DATABASE_URL } }
+            - name: RABBITMQ_URL
+              valueFrom: { secretKeyRef: { name: compliance, key: RABBITMQ_URL } }
+          readinessProbe:
+            httpGet: { path: /readyz, port: 8083 }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8083 }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 50m, memory: 32Mi }
+            limits: { cpu: 500m, memory: 128Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: compliance
+  namespace: hireassist
+spec:
+  type: ClusterIP
+  selector: { app: compliance }
+  ports:
+    - name: http
+      port: 8083

@@ -1,8 +1,8 @@
 # The API Gateway: the one entry point for user traffic, and with the web app the only Service
 # published outside the cluster (ADR-010) — a NodePort, which kind maps to localhost:30800.
 #
-# It finds the services behind it by name (ADR-014): HIRING_URL and IDENTITY_URL hold Service
-# names, never addresses, so a Pod replaced or rescheduled behind them changes nothing here.
+# It finds the services behind it by name (ADR-014): IDENTITY_URL, HIRING_URL and COMPLIANCE_URL
+# hold Service names, never addresses, so a Pod replaced or rescheduled behind them changes nothing here.
 #
 # The image is the Compose stack's (deploy/dev-keys/gateway.Dockerfile), started without its key
 # wrapper: the public verification key comes from the gateway-verification-key Secret, and the
@@ -32,6 +32,7 @@ spec:
             - { name: PORT, value: "8000" }
             - { name: IDENTITY_URL, value: "http://identity.hireassist.svc:8081" }
             - { name: HIRING_URL, value: "http://hiring.hireassist.svc:8080" }
+            - { name: COMPLIANCE_URL, value: "http://compliance.hireassist.svc:8083" }
             # The web app's refresh cookie is Secure by default; this cluster serves plain HTTP.
             - { name: SESSION_COOKIE_SECURE, value: "false" }
             - name: JWT_PUBLIC_KEYS

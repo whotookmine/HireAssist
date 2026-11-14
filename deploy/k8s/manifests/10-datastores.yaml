@@ -109,6 +109,55 @@ spec:
         accessModes: ["ReadWriteOnce"]
         resources: { requests: { storage: 1Gi } }
 
+# ── PostgreSQL for the Compliance & Insights Service; it creates its own tables at startup ───
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: compliance-db
+  namespace: hireassist
+spec:
+  selector: { app: compliance-db }
+  ports:
+    - name: postgres
+      port: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: compliance-db
+  namespace: hireassist
+spec:
+  serviceName: compliance-db
+  replicas: 1
+  selector:
+    matchLabels: { app: compliance-db }
+  template:
+    metadata:
+      labels: { app: compliance-db, tier: datastore }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          env:
+            - { name: POSTGRES_USER, value: compliance }
+            - { name: POSTGRES_DB, value: compliance }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: datastores, key: COMPLIANCE_DB_PASSWORD } }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports:
+            - containerPort: 5432
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "compliance", "-d", "compliance"] }
+            periodSeconds: 5
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 1Gi } }
+
 # ── MongoDB: one server, one database per service (ADR-003, ADR-011) ───────────────────────
 ---
 apiVersion: v1

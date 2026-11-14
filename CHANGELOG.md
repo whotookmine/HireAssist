@@ -15,6 +15,17 @@ what a session decided, and rewriting it destroys the record of when and why som
 
 ---
 
+## 2026-11-14 14:00 — Compliance & Insights on Kubernetes
+
+- **The cluster now runs Compliance & Insights** behind `compliance.hireassist.svc:8083`, with
+  a PostgreSQL of its own. The gateway is given its name as `COMPLIANCE_URL`. Before this,
+  `/compliance/*` failed on the cluster (ADR-014).
+- **It runs exactly one replica, and a rollout replaces it instead of overlapping old and new.**
+  Its retention and staleness sweeps run inside the process, so two Pods would send every notice
+  twice. Running more than one would need a lock or a leader first.
+- No mail server runs in the cluster, so there notices are logged, not sent.
+- Outstanding: the cluster has still not been run end to end.
+
 ## 2026-11-13 21:15 — The MinIO record renumbered to ADR-018
 
 - **Two records had been numbered ADR-014**: service discovery on Kubernetes (dated 2026-10-31)

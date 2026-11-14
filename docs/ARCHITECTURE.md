@@ -98,12 +98,14 @@ docs/diagrams/service-discovery.svg -o docs/diagrams/service-discovery.png`.*
 | Web app | `web:80` — NodePort, `localhost:30080` | nginx answers | the browser |
 | API Gateway | `gateway.hireassist.svc:8000` — NodePort, `localhost:30800` | it holds a verification key | the web app |
 | Identity Service | `identity.hireassist.svc:8081` | its database answers | the gateway |
-| Hiring Service | `hiring.hireassist.svc:8080` | the process answers — it has no readiness check of its own yet | the gateway |
-| Resume Processing | `resume-processing.hireassist.svc:80`, to Pod port 3000 | MongoDB and the broker are connected | Hiring, for profiles and justifications |
+| Hiring Service | `hiring.hireassist.svc:8080` | the process answers — it has no readiness check of its own yet | the gateway; Compliance, to erase |
+| Compliance & Insights | `compliance.hireassist.svc:8083` — one replica | its database and the broker are connected | the gateway |
+| Resume Processing | `resume-processing.hireassist.svc:80`, to Pod port 3000 | MongoDB and the broker are connected | Hiring, for profiles and justifications; Compliance, to list and erase |
 | AI Service | `ai-service.hireassist.svc:50051`, gRPC | its gRPC health check says it can serve | Hiring and Resume Processing |
-| RabbitMQ | `rabbitmq.hireassist.svc:5672` | it answers a ping | Hiring and Resume Processing |
+| RabbitMQ | `rabbitmq.hireassist.svc:5672` | it answers a ping | Hiring, Resume Processing and Compliance |
 | PostgreSQL, Hiring | `postgres.hireassist.svc:5432` | `pg_isready` | Hiring |
 | PostgreSQL, Identity | `identity-db.hireassist.svc:5432` | `pg_isready` | Identity |
+| PostgreSQL, Compliance | `compliance-db.hireassist.svc:5432` | `pg_isready` | Compliance |
 | MongoDB | `mongo.hireassist.svc:27017` | it answers a ping | Hiring and Resume Processing |
 | MinIO | `minio.hireassist.svc:9000` | its readiness endpoint | Hiring and Resume Processing |
 
