@@ -14,7 +14,8 @@ export function App({ language }: { language?: Language }) {
   )
   return (
     <MantineProvider theme={theme} defaultColorScheme="auto">
-      <Notifications position="top-right" />
+      {/* Bottom, not top: the candidate drawer opens on the right with its score and close button at the top. */}
+      <Notifications position="bottom-right" />
       <QueryClientProvider client={queryClient}>
         <I18nProvider initial={language}>
           <AuthProvider>
