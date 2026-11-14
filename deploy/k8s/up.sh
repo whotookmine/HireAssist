@@ -16,7 +16,7 @@ cd "$(dirname "$0")/../.."
 CLUSTER=hireassist
 NS=hireassist
 IMAGES="hireassist/ai-service:dev hireassist/hiring:dev hireassist/resume-processing:2.0.0
-hireassist/identity:dev hireassist/gateway:dev hireassist/web:dev"
+hireassist/identity:dev hireassist/gateway:dev hireassist/web:dev hireassist/compliance:dev"
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 
@@ -34,6 +34,7 @@ build hireassist/resume-processing:2.0.0 -f services/resume-processing/Dockerfil
 build hireassist/identity:dev -f deploy/dev-keys/identity.Dockerfile .
 build hireassist/gateway:dev -f deploy/dev-keys/gateway.Dockerfile .
 build hireassist/web:dev services/web
+build hireassist/compliance:dev services/compliance
 # shellcheck disable=SC2086 # one word per image
 kind load docker-image --name "$CLUSTER" $IMAGES
 
@@ -48,6 +49,7 @@ apply_secret() {
 apply_secret datastores \
   --from-literal=POSTGRES_PASSWORD=hireassist \
   --from-literal=IDENTITY_DB_PASSWORD=identity \
+  --from-literal=COMPLIANCE_DB_PASSWORD=compliance \
   --from-literal=RABBITMQ_USER=hireassist \
   --from-literal=RABBITMQ_PASSWORD=hireassist \
   --from-literal=MINIO_ROOT_USER=hireassist \
@@ -65,6 +67,9 @@ apply_secret resume-processing \
   --from-literal=S3_SECRET_KEY=hireassist-local
 apply_secret identity \
   --from-literal=DATABASE_URL='postgres://identity:identity@identity-db.hireassist.svc:5432/identity?sslmode=disable'
+apply_secret compliance \
+  --from-literal=DATABASE_URL='postgres://compliance:compliance@compliance-db.hireassist.svc:5432/compliance?sslmode=disable' \
+  --from-literal=RABBITMQ_URL='amqp://hireassist:hireassist@rabbitmq.hireassist.svc:5672/'
 apply_secret ai-service \
   --from-literal=AI_SERVICE_PROVIDER="${AI_SERVICE_PROVIDER:-canned}" \
   --from-literal=AI_SERVICE_API_KEY="${AI_SERVICE_API_KEY:-}" \
@@ -84,7 +89,7 @@ kubectl -n "$NS" create configmap identity-db-init --from-file=services/identity
 
 say "4/5 datastores and broker"
 kubectl apply -f deploy/k8s/manifests/10-datastores.yaml
-for s in postgres identity-db mongo rabbitmq minio; do
+for s in postgres identity-db compliance-db mongo rabbitmq minio; do
   kubectl -n "$NS" rollout status "statefulset/$s" --timeout=300s
 done
 
@@ -96,7 +101,7 @@ if [ -n "$running" ]; then
   # shellcheck disable=SC2086 # one word per deployment
   kubectl -n "$NS" rollout restart $running
 fi
-for d in ai-service identity hiring resume-processing gateway web; do
+for d in ai-service identity hiring resume-processing compliance gateway web; do
   kubectl -n "$NS" rollout status "deployment/$d" --timeout=300s
 done
 

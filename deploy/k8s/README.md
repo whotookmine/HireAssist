@@ -26,8 +26,8 @@ replaces the running Pods. As with Compose, `AI_SERVICE_PROVIDER`, `AI_SERVICE_A
 |---|---|
 | `kind-config.yaml` | A one-node cluster, with the web app's and the gateway's NodePorts mapped to `localhost:30080` and `localhost:30800` |
 | `manifests/00-namespace.yaml` | The `hireassist` namespace: one company's deployment (ADR-006) |
-| `manifests/10-datastores.yaml` | PostgreSQL ×2, MongoDB, RabbitMQ and MinIO, each a StatefulSet with a volume |
-| `manifests/20-…50-*.yaml` | The AI Service, Hiring, Identity, the gateway and the web app |
+| `manifests/10-datastores.yaml` | PostgreSQL ×3, MongoDB, RabbitMQ and MinIO, each a StatefulSet with a volume |
+| `manifests/20-…50-*.yaml` | The AI Service, Hiring, Identity, Compliance & Insights, the gateway and the web app |
 | `../../services/resume-processing/k8s/` | Resume Processing's manifest, kept with its service |
 | `ai-service.Dockerfile` | An image for the AI Service, which Compose runs from source instead |
 | `up.sh` | Brings it all up; creates the Secrets and the signing key pair |
@@ -61,6 +61,9 @@ back at the end.
   the first attempt filled the laptop's disk — so the first run may need fixes.
 - **Hiring has no readiness check of its own** — its probe is its liveness endpoint, so a Hiring
   Pod that has lost its database still receives requests.
+- **Compliance & Insights runs one replica**, replaced rather than rolled: its sweeps run in the
+  process, so two Pods would send every notice twice.
+- **No mail server runs in the cluster.** Compliance logs its notices instead of sending them.
 - **The AI Service runs one replica.** Its callers each hold one long-lived gRPC connection, which
   a ClusterIP Service balances per connection, not per call (ADR-014).
 - **Startup order is not guaranteed.** `up.sh` applies the datastores first; after a full restart

@@ -144,9 +144,11 @@ function createApp() {
 
   // eraseCandidateProfile(): the profile and its derived screening documents
   app.delete("/candidates/:id", handle(async (req, res) => {
+    // An unreadable resume has screening results but no profile, so both are deleted before
+    // deciding on 404: the caller takes 404 to mean nothing is held (ADR-016).
     const doc = await CandidateProfile.findByIdAndDelete(req.params.id);
-    if (!doc) return res.status(404).json(NOT_FOUND);
-    await ScreeningResult.deleteMany({ candidateId: req.params.id });
+    const { deletedCount } = await ScreeningResult.deleteMany({ candidateId: req.params.id });
+    if (!doc && !deletedCount) return res.status(404).json(NOT_FOUND);
     res.json({ success: true });
   }));
 
