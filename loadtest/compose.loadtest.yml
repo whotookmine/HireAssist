@@ -1,0 +1,26 @@
+# Load-test overrides, layered on the root docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f loadtest/compose.loadtest.yml up -d --build
+#   docker compose -f docker-compose.yml -f loadtest/compose.loadtest.yml up -d --scale resume-processing=4
+#
+# Two changes, and nothing else differs from the demo stack.
+services:
+  ai-service:
+    environment:
+      # The canned provider answers at once; a model takes seconds. Six seconds a call, two calls
+      # a resume, is the twelve seconds a resume the NFR estimates assume. A real provider is not
+      # used because its rate limit and cost would set the result, not our architecture.
+      AI_SERVICE_CANNED_LATENCY_S: "${AI_SERVICE_CANNED_LATENCY_S:-6}"
+      # Worker threads in the AI Service (10 by default). run-scalability.sh raises it for the
+      # final run to show what the default caps.
+      AI_SERVICE_MAX_WORKERS: "${AI_SERVICE_MAX_WORKERS:-10}"
+
+  resume-processing:
+    environment:
+      # Retries after a transient failure: 3 (the service default) is about 35 seconds of
+      # backoff. fault-injection.sh shows what a longer budget changes.
+      MAX_RETRIES: "${RESUME_PROCESSING_MAX_RETRIES:-3}"
+    # A published host port can be bound by one replica only. Nothing outside the stack calls
+    # Resume Processing — Hiring and Compliance reach it by its service name — so the scaled
+    # replicas publish none.
+    ports: !reset []
